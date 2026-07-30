@@ -1,0 +1,17 @@
+# secrets — never commit
+connector-secrets.txt
+.env
+*.pem
+*.key
+
+# local run artifacts
+*.log
+.run-logs/
+__pycache__/
+*.pyc
+
+# os / editor
+.DS_Store
+*.swp
+.idea/
+.vscode/

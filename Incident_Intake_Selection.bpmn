@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="d0de47f" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+  <bpmn:process id="Start_Incident_Type_Selection" name="Start Incident Type Selection" isExecutable="true">
+    <bpmn:startEvent id="scenario_processor_start" name="Scenario Processor Start">
+      <bpmn:outgoing>Flow_1sqrpw7</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:serviceTask id="Szenario_Generieren_KI" name="REST: Szenario-Stub abrufen" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="http://host.docker.internal:9998/invoke" target="url" />
+          <zeebe:input source="={&#34;incident_topic&#34;: sim_input.incident_topic}" target="body" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="20" target="readTimeoutInSeconds" />
+          <zeebe:input source="false" target="storeResponse" />
+          <zeebe:input source="false" target="followRedirects" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="13" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+          <zeebe:header key="resultExpression" value="={&#10;  sim_input: {&#10;    incident_topic: sim_topic.incident_topic,&#10;    raw_alert: response.body.raw_alert,&#10;    incident_type: response.body.incident_type&#10;  }&#10;}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0zi105u</bpmn:incoming>
+      <bpmn:outgoing>Flow_1pwzgo0</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:sequenceFlow id="Flow_0zi105u" sourceRef="Activity_0h5dq03" targetRef="Szenario_Generieren_KI" />
+    <bpmn:sequenceFlow id="Flow_1sqrpw7" sourceRef="scenario_processor_start" targetRef="Szenario_Typ_Selection" />
+    <bpmn:intermediateThrowEvent id="Event_0p7niyh">
+      <bpmn:incoming>Flow_1pwzgo0</bpmn:incoming>
+    </bpmn:intermediateThrowEvent>
+    <bpmn:sequenceFlow id="Flow_1pwzgo0" sourceRef="Szenario_Generieren_KI" targetRef="Event_0p7niyh" />
+    <bpmn:sequenceFlow id="Flow_1rmo2ip" sourceRef="Szenario_Typ_Selection" targetRef="Activity_0h5dq03" />
+    <bpmn:userTask id="Szenario_Typ_Selection" name="ISMS Scenario Type Selection">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="Incident_Type_Selection" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1sqrpw7</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rmo2ip</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:scriptTask id="Activity_0h5dq03" name="Incident Type">
+      <bpmn:extensionElements>
+        <zeebe:script expression="={&#10;  incident_topic:&#10;&#10;    /* 🔴 1. Vorfall ISO */&#10;    if scenario_type = &#34;ISO&#34; then&#10;      &#34;Verdächtige Scanaktivität aus externem Netzwerk erkannt&#34;&#10;&#10;    /* 🔴 2. ISO IGNORE - kein Vorfall */&#10;    else if scenario_type = &#34;ISO_IGNORE&#34; then&#10;      &#34;Geplanter externer Security Scan durch internes IT-Team, vorab genehmigt und im Change-System dokumentiert.&#34;&#10;&#10;    /* 🔴 3. Vorfall ISO &#38; THREAT */&#10;    else if scenario_type = &#34;ISO_THREAT&#34; then&#10;      &#34;Verdacht auf Proxy/VPN-Traffic aus Rechenzentrum von der externen IP 172.67.182.45&#34;&#10;&#10;    /* 🔴 4. Vorfall ISO, DSGVO */&#10;    else if scenario_type = &#34;ISO_GDPR&#34; then&#10;      &#34;Unbefugter Zugriff auf eine Kundendatenbank mit personenbezogenen Daten (Name, E-Mail, Adresse) festgestellt. Analyse der Zugriffsprotokolle und Datenverarbeitung erforderlich.&#34;&#10;&#10;    /* 🔴 5. Vorfall ISO, DSGVO &#38; ASSET */&#10;    else if scenario_type = &#34;ISO_GDPR_Asset&#34; then&#10;      &#34;Verdacht auf Datenabfluss aus CRM-System CRM-PROD-02 mit Kundenprofilen und Kontaktdaten. Untersuchung der Zugriffshistorie notwendig.&#34;&#10;&#10;    /* 🔴 6. Vorfall ISO, THREAT &#38;  ASSET LOOKUP */&#10;    else if scenario_type = &#34;ISO_THREAT_ASSET&#34; then&#10;      &#34;Mehrere eingehende Verbindungen von der externen IP 104.200.20.46 gegen mehrere interne Systeme und Server erkannt&#34;&#10;&#10;    /* 🔴 7. Vorfall ISO &#38; ASSET LOOKUP */&#10;    else if scenario_type = &#34;ISO_ASSET&#34; then&#10;      &#34;Der interne Authentifizierungsserver AUTH-01 zeigt ungewöhnliche CPU-Spitzen und Prozesse.&#10;Analyse der Systemintegrität und betroffenen Services erforderlich.&#34;&#10;&#10;    /* 🔥 8. Vorfall ISO, THREAT, ASSET &#38; DSGVO */&#10;    else&#10;      &#34;Mehrere gezielte Zugriffe von 104.200.20.46 auf DB-PROD-02 mit Hinweis auf SQL Injection und Zugriff auf Kundendaten Name Adresse Bestellungen&#34;,&#10;&#10;&#10;  raw_alert:&#10;    &#34;Trigger für KI: Generiere einen realistischen technisch detaillierten Angriffslog zum Thema &#34; + incident_topic&#10;}" resultVariable="sim_topic" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1rmo2ip</bpmn:incoming>
+      <bpmn:outgoing>Flow_0zi105u</bpmn:outgoing>
+    </bpmn:scriptTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Start_Incident_Type_Selection">
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="scenario_processor_start">
+        <dc:Bounds x="-18" y="222" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="-38" y="265" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0x2eee6_di" bpmnElement="Szenario_Generieren_KI">
+        <dc:Bounds x="420" y="200" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0p7niyh_di" bpmnElement="Event_0p7niyh">
+        <dc:Bounds x="592" y="222" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0pyq91f_di" bpmnElement="Szenario_Typ_Selection">
+        <dc:Bounds x="110" y="200" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ewzoye_di" bpmnElement="Activity_0h5dq03">
+        <dc:Bounds x="260" y="200" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0zi105u_di" bpmnElement="Flow_0zi105u">
+        <di:waypoint x="360" y="240" />
+        <di:waypoint x="420" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1sqrpw7_di" bpmnElement="Flow_1sqrpw7">
+        <di:waypoint x="18" y="240" />
+        <di:waypoint x="110" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pwzgo0_di" bpmnElement="Flow_1pwzgo0">
+        <di:waypoint x="520" y="240" />
+        <di:waypoint x="592" y="240" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rmo2ip_di" bpmnElement="Flow_1rmo2ip">
+        <di:waypoint x="210" y="240" />
+        <di:waypoint x="260" y="240" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
