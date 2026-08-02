@@ -1,4 +1,17 @@
-"""Bedrock stub — GET/POST both accepted. Port 9997."""
+"""Local stand-in for the blueprint's six AWS Bedrock AI calls.
+
+Despite standing in for Bedrock, this speaks plain REST — it never implements
+the Bedrock protocol. What it reproduces is the Bedrock *response envelope*
+the blueprint's FEEL expects:
+
+    { "body": { "content": [ {...}, { "text": "```json{...}```" } ] } }
+
+The tasks read body.content[1].text, strip the ```json fences and parse. By
+returning that exact shape, no downstream FEEL expression had to change.
+
+Routes (GET or POST): /planner /gdpr /iso /threat /short_desc /explanation
+Run: python3 ai_stub_server.py    (listens on :9997)
+"""
 from flask import Flask, jsonify
 import json
 app = Flask(__name__)
@@ -34,6 +47,7 @@ def t(): return jsonify(envelope(fenced(T))), 200
 def s(): return jsonify(envelope(fenced(S))), 200
 @app.route("/explanation", methods=M)
 def e(): return jsonify(envelope(fenced(E))), 200
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=9997)
