@@ -14,6 +14,10 @@ The blueprint calls AWS Bedrock for every AI step, which requires live credentia
 
 The result is a complete, reproducible run: from scenario intake through AI planning, dynamic investigation tools, analyst validation and the final audit report — with no AWS account and no per-run cost.
 
+<p align="center">
+  <img src="Images/Local_Run_Coverage.png" alt="What this local run covers against the blueprint feature areas" width="800">
+</p>
+
 ---
 
 ## Overview
@@ -31,18 +35,20 @@ The implementation preserves the blueprint's separation of responsibilities and 
 
 ## Contents
 
-| File | Purpose |
+| Path | Purpose |
 |---|---|
-| `AI_Incident_Investigation.bpmn` | Parent process — planner, investigation tools, ISMS/ISO steps, report |
-| `Incident_Intake_Selection.bpmn` | Child process — analyst scenario selection, incident topic + alert |
-| `Incident_Type_Selection.form` | Tasklist form — scenario selection |
-| `Incident_Validation.form` | Tasklist form — analyst validation |
-| `Incident_Report.form` | Tasklist form — incident report |
+| `Blueprint/AI_Incident_Investigation.bpmn` | Parent process — planner, investigation tools, ISMS/ISO steps, report |
+| `Blueprint/Incident_Intake_Selection.bpmn` | Child process — analyst scenario selection, incident topic + alert |
+| `Blueprint/Incident_Type_Selection.form` | Tasklist form — scenario selection |
+| `Blueprint/Incident_Validation.form` | Tasklist form — analyst validation |
+| `Blueprint/Incident_Report.form` | Tasklist form — incident report |
 | `bedrock_to_rest__stub_server.py` | Stand-in for the 6 AWS Bedrock AI calls (port 9997) |
 | `incident_stub_server.py` | Stand-in for the child's scenario generator (port 9998) |
 | `incident_producer.py` | Kafka producer — publishes synthetic security events to a topic |
 | `REST_Outbound_Connector.json` | REST connector element template |
 | `AWS_Bedrock_Outbound_Connector.json` | Bedrock connector element template (reference) |
+| `Images/` | Diagrams and coverage charts |
+| `LICENSE/` | MIT license and blueprint attribution |
 
 ---
 
@@ -330,6 +336,17 @@ This implementation enables:
 ## Secrets
 
 None are committed. `connector-secrets.txt` and `.env` are git-ignored. Fill them locally from your own rotated credentials.
+
+---
+
+## License
+
+MIT — see `LICENSE/`.
+
+The original Camunda blueprint, its BPMN models and forms remain the property of
+their respective authors under their own terms. The MIT license covers the
+additions made here: the stub servers, the Kafka producer, the English
+translations, the connector re-pointing and the documentation.
 
 ---
 
