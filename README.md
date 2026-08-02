@@ -15,7 +15,7 @@ The blueprint calls AWS Bedrock for every AI step, which requires live credentia
 The result is a complete, reproducible run: from scenario intake through AI planning, dynamic investigation tools, analyst validation and the final audit report — with no AWS account and no per-run cost.
 
 <p align="center">
-  <img src="Images/Local_Run_Coverage.png" alt="What this local run covers against the blueprint feature areas" width="800">
+  <img src="Images/local_run_coverage_vs_blueprint.png" alt="What this local run covers against the blueprint feature areas" width="800">
 </p>
 
 ---
