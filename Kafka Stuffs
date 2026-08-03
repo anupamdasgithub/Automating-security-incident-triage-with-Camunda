@@ -1,0 +1,11 @@
+pip install kafka-python --break-system-packages
+
+
+python3 -c "import kafka; print('kafka-python OK')"
+
+
+
+docker exec connectors wget -qO- http://host.docker.internal:9998/health
+
+
+python3 ~/incident_producer.py FULL  /// fore an event 

@@ -44,15 +44,18 @@ The implementation preserves the blueprint's separation of responsibilities and 
 | `Blueprint/Incident_Report.form` | Tasklist form — incident report |
 | `bedrock_to_rest__stub_server.py` | Stand-in for the 6 AWS Bedrock AI calls (port 9997) |
 | `incident_stub_server.py` | Stand-in for the child's scenario generator (port 9998) |
-| `incident_producer.py` | Kafka producer — publishes synthetic security events to a topic |
+| `incident_producer.py` | Kafka producer — publishes synthetic security events to `security-events` |
 | `REST_Outbound_Connector.json` | REST connector element template |
 | `AWS_Bedrock_Outbound_Connector.json` | Bedrock connector element template (reference) |
 | `Images/` | Diagrams and coverage charts |
-| `LICENSE/` | MIT license and blueprint attribution |
+| `LICENSE` | MIT license and blueprint attribution |
 
 ---
 
 ## Process Overview
+
+### 0. Event Intake *(Kafka)*
+The parent process starts from a Kafka message start event, not from a manual click. A security event published to the `security-events` topic activates `Start_Process`, and its payload becomes the `incident_topic` and `scenario_type` process variables. See **Event-Driven Start** below.
 
 ### 1. Scenario Setup *(Test Environment Only)*
 The child process `Incident_Intake_Selection` initialises input data for demonstration and testing.
@@ -299,6 +302,162 @@ The body exists only because the REST connector needs a **non-empty body** toget
 
 > All of these property panels stay collapsed in Modeler until `REST_Outbound_Connector.json` is **published** as an element template in the project.
 
+## Event-Driven Start — Kafka Inbound Connector
+
+The blueprint starts manually. Here the parent process is triggered by a security event on Kafka, which is closer to how a SOC actually receives alerts.
+
+### Element
+
+`Start_Process` in `AI_Incident_Investigation.bpmn` is a **message start event** carrying the official Kafka inbound template. Three version numbers matter and are easy to confuse:
+
+| Layer | Value | Where to read it |
+|---|---|---|
+| Element template | `io.camunda.connectors.inbound.KafkaMessageStart.v1`, version 7 | `zeebe:modelerTemplateVersion` |
+| Runtime connector type | `io.camunda:connector-kafka-inbound:1` | `zeebe:property name="inbound.type"` |
+| Bundle implementation | `camunda/connectors-bundle:8.10-SNAPSHOT` | `docker compose ps connectors` |
+
+The `:1` is the connector's API contract version, not a Kafka client version.
+
+Deployed properties:
+
+```
+topic.bootstrapServers = kafka:9094
+topic.topicName        = security-events
+groupId                = incident-intake-consumer
+autoOffsetReset        = latest
+authenticationType     = custom
+schemaStrategy.type    = noSchema
+correlationRequired    = notRequired
+consumeUnmatchedEvents = true
+resultExpression       = {incident_topic: value.incident_topic, scenario_type: value.scenario_type}
+```
+
+Two of these were wrong for a long time and cost a full debugging session:
+
+- **`resultExpression` must not carry a leading `=`.** The Modeler field auto-prefixes it. Typing `={...}` produces `=={...}` in the XML.
+- **`authenticationType` must be `custom`, not `credentials`,** for a PLAINTEXT broker with no auth. The template offers only those two options and `credentials` is the default.
+
+### Broker listeners
+
+Kafka is defined in `docker-compose-full.yaml` as a single KRaft broker with three listeners:
+
+```yaml
+KAFKA_CFG_LISTENERS=PLAINTEXT://:9094,CONTROLLER://:9093,EXTERNAL://:9092
+KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9094,EXTERNAL://localhost:9092
+```
+
+| Listener | Advertised as | Used by |
+|---|---|---|
+| PLAINTEXT 9094 | `kafka:9094` | the connectors runtime, in-network |
+| EXTERNAL 9092 | `localhost:9092` | the producer running on the host |
+| CONTROLLER 9093 | — | KRaft internal |
+
+A Kafka client connects to the bootstrap address once, then the broker replies with the advertised listener for that listener name and all later traffic goes there. The advertised name therefore has to resolve **from the client's own network**. `kafka` resolves inside Docker but not from the host; `localhost` resolves from the host but points at the wrong thing inside a container. Hence two listeners for one broker.
+
+### Publishing an event
+
+From the host, with Python:
+
+```bash
+python3 incident_producer.py FULL
+```
+
+Or with no Python dependency at all, using the broker's own console producer:
+
+```bash
+docker exec -i kafka kafka-console-producer.sh \
+  --bootstrap-server localhost:9094 \
+  --topic security-events <<'EOF'
+{"eventId":"manual-001","scenario_type":"FULL","incident_topic":"Wiederholte Zugriffe von 198.51.100.46 auf TEST-DB-02, Injection-Muster","source":"manual"}
+EOF
+```
+
+`localhost:9094` is correct here — inside the container, the PLAINTEXT listener *is* local. Only `scenario_type` and `incident_topic` are read by the process; the other fields are carried for realism.
+
+### Verifying activation
+
+```bash
+docker logs connectors 2>&1 | grep -i "activated inbound"
+```
+
+Expected:
+
+```
+Activated inbound connector io.camunda:connector-kafka-inbound:1
+  with deduplication ID '...:Process_vprqirj-...'
+```
+
+Then confirm the payload actually became process variables:
+
+```bash
+TOKEN=$(curl -s -X POST http://localhost:18080/auth/realms/camunda-platform/protocol/openid-connect/token \
+  -d grant_type=client_credentials -d client_id=connectors -d client_secret=demo-connectors-secret \
+  | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
+
+curl -s -X POST http://localhost:8080/v2/variables/search \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -d '{"filter":{"processInstanceKey":"<key>"}}' | python3 -m json.tool
+```
+
+Access tokens expire in minutes and shell variables do not cross terminal windows — re-mint on every new shell.
+
+### Run order matters
+
+Kafka has no named volume in this compose file, so **topics and offsets reset on every `docker compose down`**. Combined with `autoOffsetReset=latest`, that makes the sequence strict:
+
+1. Bring the stack up
+2. Start both stub servers (`:9997`, `:9998`)
+3. Confirm the connector activated
+4. *Then* publish
+
+An event published before the connector arms is consumed by nobody and is unreachable afterwards. Adding a volume mounted at `/bitnami/kafka` removes this trap if you want offsets to survive restarts.
+
+### `Start_Process` can no longer be started from Tasklist
+
+This is intended. A message start event gives the engine no way to create an instance without a correlated message, so the Tasklist button returns **Process start failed**. That error is confirmation the Kafka-only wiring is real. To restore manual starting, revert `Start_Process` to a plain none start event.
+
+### Troubleshooting: the version-drift trap
+
+The single most expensive failure in this build was not a Kafka problem at all.
+
+**Symptom:** the Kafka properties are correct in the model and in the deployed XML, the broker is healthy and reachable, the producer publishes successfully — and `Activated inbound connector` never appears in the connectors log. No error anywhere.
+
+**Cause:** the connector runtime activates inbound connectors only for the **latest version** of each process definition, resolved by version *number*. If Zeebe's state is wiped while Elasticsearch keeps records from the previous incarnation, the version counter restarts and the numbering desynchronises. The runtime then resolves an older, pre-Kafka definition as "latest" and correctly finds nothing to activate.
+
+**Detection** — version and key should both ascend together:
+
+```bash
+curl -s -X POST http://localhost:8080/v2/process-definitions/search \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d '{}' \
+  | python3 -c 'import sys,json;[print(i["version"], i["processDefinitionKey"], i["processDefinitionId"]) for i in json.load(sys.stdin)["items"]]'
+```
+
+Keys are monotonic. If the highest key does not carry the highest version, the two stores have drifted.
+
+**Fix** — remove engine state and secondary storage together so both restart from zero:
+
+```bash
+docker compose -f docker-compose-full.yaml -f docker-compose.secrets.yaml down
+docker volume rm camunda-810_orchestration camunda-810_camunda-data camunda-810_elasticsearch
+docker compose -f docker-compose-full.yaml -f docker-compose.secrets.yaml up -d
+```
+
+Keep `camunda-810_postgres`, `camunda-810_postgres-web` and `camunda-810_keycloak-theme` — those hold Keycloak clients, role grants and Web Modeler diagrams. Redeploy the child first, then the parent.
+
+**Rule of thumb:** after any state wipe, check that max version corresponds to max key *before* debugging an inbound connector.
+
+### What the inbound bean list does not tell you
+
+At startup the runtime logs:
+
+```
+Found inbound connector beans: [a2aClientPollingExecutable, a2aClientWebhookExecutable]
+```
+
+Kafka is absent from that list and this is not a fault. Spring-bean discovery and SPI discovery are separate paths; the Kafka inbound connector arrives via SPI. Checking the bean list is not a valid way to confirm the connector is available. Use the activation log line instead.
+
+---
+
 ## Implementation Notes
 
 ### REST connector needs an explicit `Content-Type` header
@@ -330,6 +489,16 @@ This implementation enables:
 
 - Camunda 8.10-SNAPSHOT Self-Managed, Docker Compose (full profile)
 - `camunda/connectors-bundle:8.10-SNAPSHOT`
+- `bitnamilegacy/kafka:3.9` (KRaft, no ZooKeeper), defined in `docker-compose-full.yaml`
+- macOS, Apple Silicon, Docker Desktop
+
+Always pass both overlays:
+
+```bash
+docker compose -f docker-compose-full.yaml -f docker-compose.secrets.yaml <command>
+```
+
+Host ports: orchestration (Operate/Tasklist) `8080`, Web Modeler `8070`, connectors `8086`, Keycloak `18080`, Kafka `9092`.
 
 ---
 
@@ -341,7 +510,7 @@ None are committed. `connector-secrets.txt` and `.env` are git-ignored. Fill the
 
 ## License
 
-MIT — see `LICENSE/`.
+MIT — see `LICENSE`.
 
 The original Camunda blueprint, its BPMN models and forms remain the property of
 their respective authors under their own terms. The MIT license covers the
