@@ -6,6 +6,39 @@
 
 ---
 
+## Executive Summary
+
+The Camunda blueprint decides which investigation tools to run by having a model
+emit a list of strings that Zeebe matches against BPMN element IDs. This branch
+replaces that with **Camunda's AI Agent Sub-process driving tools published over
+MCP** — typed schemas, runtime discovery, contract-based invocation.
+
+Everything downstream of the tools is untouched. The blueprint's own FEEL, its
+risk scoring, its ISO and GDPR logic and its human validation gate all run
+unmodified, on data that now arrives through an agent instead of a hard-coded
+dispatch table.
+
+The model is a local OpenAI-compatible stub, so runs cost nothing and are
+deterministic. Camunda's agent loop around it — discovery, dispatch, feedback,
+correlation, iteration limits — is entirely real. One of the three tools calls a
+live external service.
+
+Proven on a single Kafka event, at zero cost:
+
+| | |
+|---|---|
+| Model calls | 2 |
+| Tool calls | 3, dispatched in parallel over MCP |
+| Live data | `threat_intel_lookup` → 10 open ports, CDN tag and CPE from `internetdb.shodan.io` |
+| Blueprint output | `threat_score 12`, `asset_criticality high`, `risk_level HIGH`, `action investigate` |
+| Cost | $0 — no API key, no provider account |
+
+<p align="center">
+  <img src="Images/agentic_process_rearchitected.png" alt="Agentic process architecture — Kafka intake, AI Agent Sub-process with MCP tools, unmodified blueprint downstream" width="900">
+</p>
+
+---
+
 ## Intent
 
 The blueprint selects investigation tools by having a model emit a list of
@@ -211,6 +244,10 @@ incident_object:
 `threat_score = 12` is the blueprint's own formula — ten ports plus one tag
 scored double — computed from live scan data reaching unmodified FEEL.
 
+<p align="center">
+  <img src="Images/agentic_soc_process.png" alt="Agentic SOC process, full model" width="900">
+</p>
+
 ---
 
 ## Known gaps
@@ -221,10 +258,6 @@ scored double — computed from live scan data reaching unmodified FEEL.
 correctly, so nothing downstream is wrong — but the intermediate object is
 misleading. Moving the agent ahead of it, replacing the planner REST task
 outright, is the clean fix.
-
-**`Gateway_0f83elm` is vestigial.** It was the merge point for the two branches
-of the gateway this variant removed. It now has one incoming and one outgoing
-flow and can be deleted.
 
 **The child still prompts for `scenario_type`.** The Kafka event carries it, but
 the intake form asks anyway — an artifact of the blueprint's manual design.
