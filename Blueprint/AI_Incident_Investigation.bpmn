@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="d0de47f" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="1f76d31" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.9.0">
   <bpmn:process id="Process_vprqirj" name="AI Incident Investigation Blueprint" isExecutable="true">
     <bpmn:userTask id="ISMS_Incident_Review" name="ISMS Incident Review">
       <bpmn:extensionElements>
@@ -23,7 +23,31 @@
     </bpmn:userTask>
     <bpmn:sequenceFlow id="Flow_1jzlpls" sourceRef="ISMS_Incident_Review" targetRef="Activity_0tgi495" />
     <bpmn:sequenceFlow id="Flow_1qc7jlo" sourceRef="Activity_1rkk3bi" targetRef="Prepare_Incident_Context" />
-    <bpmn:serviceTask id="Activity_1rkk3bi" name="AI INCIDENT PLANNER" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/planner" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultVariable" value="tools" /><zeebe:header key="resultExpression" value="={&#10;  &#34;raw&#34;: body.content[1].text,&#10;&#10;  &#34;clean_json&#34;:&#10;    trim(&#10;      replace(&#10;        replace(&#10;          body.content[1].text,&#10;          &#34;```json&#34;,&#10;          &#34;&#34;&#10;        ),&#10;        &#34;```&#34;,&#10;        &#34;&#34;&#10;      )&#10;    ),&#10;&#10;  &#34;agent_plan&#34;:&#10;    from json(&#10;      trim(&#10;        replace(&#10;          replace(&#10;            body.content[1].text,&#10;            &#34;```json&#34;,&#10;            &#34;&#34;&#10;          ),&#10;          &#34;```&#34;,&#10;          &#34;&#34;&#10;        )&#10;      )&#10;    ),&#10;&#10;  &#34;tools&#34;:&#10;    if get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    ) != null&#10;    then get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    )&#10;    else []&#10;}" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements><bpmn:incoming>Flow_0kepnhr</bpmn:incoming><bpmn:outgoing>Flow_1qc7jlo</bpmn:outgoing></bpmn:serviceTask>
+    <bpmn:serviceTask id="Activity_1rkk3bi" name="AI INCIDENT PLANNER" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+          <zeebe:input source="http://host.docker.internal:9997/planner" target="url" />
+          <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="20" target="readTimeoutInSeconds" />
+          <zeebe:input source="false" target="storeResponse" />
+          <zeebe:input source="false" target="followRedirects" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="13" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+          <zeebe:header key="resultVariable" value="tools" />
+          <zeebe:header key="resultExpression" value="={&#10;  &#34;raw&#34;: body.content[1].text,&#10;&#10;  &#34;clean_json&#34;:&#10;    trim(&#10;      replace(&#10;        replace(&#10;          body.content[1].text,&#10;          &#34;```json&#34;,&#10;          &#34;&#34;&#10;        ),&#10;        &#34;```&#34;,&#10;        &#34;&#34;&#10;      )&#10;    ),&#10;&#10;  &#34;agent_plan&#34;:&#10;    from json(&#10;      trim(&#10;        replace(&#10;          replace(&#10;            body.content[1].text,&#10;            &#34;```json&#34;,&#10;            &#34;&#34;&#10;          ),&#10;          &#34;```&#34;,&#10;          &#34;&#34;&#10;        )&#10;      )&#10;    ),&#10;&#10;  &#34;tools&#34;:&#10;    if get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    ) != null&#10;    then get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    )&#10;    else []&#10;}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0kepnhr</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qc7jlo</bpmn:outgoing>
+    </bpmn:serviceTask>
     <bpmn:adHocSubProcess id="AI_Investigation_Tools" name="AI Investigation Tools" cancelRemainingInstances="false">
       <bpmn:extensionElements>
         <zeebe:adHoc activeElementsCollection="=agent_plan.tools" />
@@ -85,7 +109,29 @@ Example result:
           <zeebe:script expression="={&#10;  /* ---------------- NORMALIZED INPUT ---------------- */&#10;  topic_lower:&#10;  lower case(&#10;    if sim_input != null and sim_input.incident_topic != null&#10;    then sim_input.incident_topic&#10;    else &#34;&#34;&#10;  ),&#10;&#10;  /* ---------------- ASSET EXTRACTION ---------------- */&#10;  asset_name: &#10;&#10;    /* 🔴 EXAKTE MATCHES (CASE SAFE) */&#10;    if contains(topic_lower, &#34;auth-&#34;) then&#10;      &#34;AUTH-&#34; + upper case(substring before(substring after(topic_lower, &#34;auth-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;pay-&#34;) then&#10;      &#34;PAY-&#34; + upper case(substring before(substring after(topic_lower, &#34;pay-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;db-&#34;) then&#10;      &#34;DB-&#34; + upper case(substring before(substring after(topic_lower, &#34;db-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;web-&#34;) then&#10;      &#34;WEB-&#34; + upper case(substring before(substring after(topic_lower, &#34;web-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;hr-&#34;) then&#10;      &#34;HR-&#34; + upper case(substring before(substring after(topic_lower, &#34;hr-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;data-&#34;) then&#10;      &#34;DATA-&#34; + upper case(substring before(substring after(topic_lower, &#34;data-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;fs-&#34;) then&#10;      &#34;FS-&#34; + upper case(substring before(substring after(topic_lower, &#34;fs-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;admin-&#34;) then&#10;      &#34;ADMIN-&#34; + upper case(substring before(substring after(topic_lower, &#34;admin-&#34;), &#34; &#34;))&#10;&#10;    else if contains(topic_lower, &#34;app-&#34;) then&#10;      &#34;APP-&#34; + upper case(substring before(substring after(topic_lower, &#34;app-&#34;), &#34; &#34;))&#10;&#10;    /* 🔥 FALLBACK (SEMANTISCH) */&#10;    else if contains(topic_lower, &#34;fileserver&#34;)&#10;    then &#34;FS-UNKNOWN&#34;&#10;&#10;    else if contains(topic_lower, &#34;admin&#34;)&#10;    then &#34;ADMIN-UNKNOWN&#34;&#10;&#10;    else if contains(topic_lower, &#34;application server&#34;)&#10;    then &#34;APP-UNKNOWN&#34;&#10;&#10;    else if contains(topic_lower, &#34;api&#34;)&#10;    then &#34;API-UNKNOWN&#34;&#10;&#10;    else if contains(topic_lower, &#34;kubernetes&#34;)&#10;    then &#34;K8S-NODE&#34;&#10;&#10;    /* 🔚 FINAL */&#10;    else null,&#10;&#10;  /* ---------------- ASSET DETECTION ---------------- */&#10;  asset_found: asset_name != null,&#10;&#10;  asset_type: if asset_found then &#34;Internal&#34; else &#34;External&#34;,&#10;&#10;  /* ---------------- ASSET OWNER ---------------- */&#10;  asset_owner: &#10;    if asset_name = null then &#34;Unknown&#34;&#10;&#10;    else if starts with(asset_name, &#34;AUTH-&#34;) then &#34;Identity Services&#34;&#10;    else if starts with(asset_name, &#34;PAY-&#34;) then &#34;Payment Platform Team&#34;&#10;    else if starts with(asset_name, &#34;DB-&#34;) then &#34;Database Operations&#34;&#10;    else if starts with(asset_name, &#34;WEB-&#34;) then &#34;Web Platform Team&#34;&#10;    else if starts with(asset_name, &#34;HR-&#34;) then &#34;HR Systems&#34;&#10;    else if starts with(asset_name, &#34;DATA-&#34;) then &#34;Data Platform Team&#34;&#10;    else if starts with(asset_name, &#34;FS-&#34;) then &#34;Storage Operations&#34;&#10;    else if starts with(asset_name, &#34;ADMIN-&#34;) then &#34;IT Administration&#34;&#10;    else if starts with(asset_name, &#34;APP-&#34;) then &#34;Application Services&#34;&#10;&#10;    else &#34;Unknown&#34;,&#10;&#10;  /* ---------------- ASSET CRITICALITY ---------------- */&#10;  asset_criticality: &#10;    if asset_found and (&#10;      starts with(asset_name, &#34;AUTH-&#34;) or&#10;      starts with(asset_name, &#34;PAY-&#34;) or&#10;      starts with(asset_name, &#34;DB-&#34;) or&#10;      starts with(asset_name, &#34;HR-&#34;) or&#10;      starts with(asset_name, &#34;DATA-&#34;)&#10;    ) then &#34;HIGH&#34;&#10;&#10;    else if asset_found and (&#10;      starts with(asset_name, &#34;FS-&#34;) or&#10;      starts with(asset_name, &#34;ADMIN-&#34;)&#10;    ) then &#34;HIGH&#34;&#10;&#10;    else if asset_found and (&#10;      starts with(asset_name, &#34;WEB-&#34;) or&#10;      starts with(asset_name, &#34;APP-&#34;)&#10;    ) then &#34;MEDIUM&#34;&#10;&#10;    else if asset_found then &#34;LOW&#34;&#10;&#10;    else if contains(topic_lower, &#34;kubernetes&#34;) then &#34;HIGH&#34;&#10;    else if contains(topic_lower, &#34;api&#34;) then &#34;MEDIUM&#34;&#10;&#10;    else if contains(topic_lower, &#34;ransomware&#34;) then &#34;HIGH&#34;&#10;    else if contains(topic_lower, &#34;data breach&#34;) or&#10;            contains(topic_lower, &#34;exfiltration&#34;) then &#34;HIGH&#34;&#10;&#10;    else &#34;LOW&#34;,&#10;&#10;  /* ---------------- ASSET CONFIDENCE ---------------- */&#10;  asset_confidence: &#10;&#10;    /* 🔴 EXAKT */&#10;    if asset_found &#10;       and not contains(asset_name, &#34;UNKNOWN&#34;)&#10;    then 0.95&#10;&#10;    /* 🟠 FALLBACK */&#10;    else if asset_found &#10;         and contains(asset_name, &#34;UNKNOWN&#34;)&#10;    then 0.7&#10;&#10;    /* 🟡 SEMANTIK */&#10;    else if contains(topic_lower, &#34;server&#34;)&#10;         or contains(topic_lower, &#34;api&#34;)&#10;         or contains(topic_lower, &#34;kubernetes&#34;)&#10;    then 0.6&#10;&#10;    /* ⚪ DEFAULT */&#10;    else 0.3&#10;}" resultVariable="asset_result" />
         </bpmn:extensionElements>
       </bpmn:scriptTask>
-      <bpmn:serviceTask id="check_gdpr_relevance" name="check_gdpr_relevance" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/gdpr" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultVariable" value="gdpr_raw" /><zeebe:header key="resultExpression" value="=response" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements></bpmn:serviceTask>
+      <bpmn:serviceTask id="check_gdpr_relevance" name="check_gdpr_relevance" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/gdpr" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="gdpr_raw" />
+            <zeebe:header key="resultExpression" value="=response" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
       <bpmn:completionCondition xsi:type="bpmn:tFormalExpression">=true</bpmn:completionCondition>
     </bpmn:adHocSubProcess>
     <bpmn:sequenceFlow id="Flow_19u3phd" sourceRef="AI_Investigation_Tools" targetRef="Gateway_0f83elm" />
@@ -94,7 +140,7 @@ Example result:
       <bpmn:outgoing>Flow_03n63ai</bpmn:outgoing>
       <bpmn:outgoing>Flow_167ixj6</bpmn:outgoing>
     </bpmn:exclusiveGateway>
-    <bpmn:sequenceFlow id="Flow_03n63ai" name="Ja" sourceRef="Gateway_05yofwt" targetRef="AI_Investigation_Tools">
+    <bpmn:sequenceFlow id="Flow_03n63ai" name="Yes" sourceRef="Gateway_05yofwt" targetRef="AI_Investigation_Tools">
       <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=agent_plan != null 
 and agent_plan.tools != null 
 and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
@@ -105,7 +151,7 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
       <bpmn:outgoing>Flow_1b2bwld</bpmn:outgoing>
     </bpmn:exclusiveGateway>
     <bpmn:sequenceFlow id="Flow_1b2bwld" sourceRef="Gateway_0f83elm" targetRef="Content_Enrichment" />
-    <bpmn:sequenceFlow id="Flow_167ixj6" name="Nein" sourceRef="Gateway_05yofwt" targetRef="Gateway_0f83elm" />
+    <bpmn:sequenceFlow id="Flow_167ixj6" name="No" sourceRef="Gateway_05yofwt" targetRef="Gateway_0f83elm" />
     <bpmn:subProcess id="Prepare_Incident_Context" name="Prepare Incident Context">
       <bpmn:incoming>Flow_1qc7jlo</bpmn:incoming>
       <bpmn:outgoing>Flow_184d9q1</bpmn:outgoing>
@@ -141,7 +187,31 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
         <bpmn:incoming>Flow_0zaatrx</bpmn:incoming>
         <bpmn:outgoing>Flow_0sy75xp</bpmn:outgoing>
       </bpmn:scriptTask>
-      <bpmn:serviceTask id="write_iso_report" name="write_iso_report" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/iso" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultVariable" value="iso_raw" /><zeebe:header key="resultExpression" value="=response" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements><bpmn:incoming>Flow_056qd13</bpmn:incoming><bpmn:outgoing>Flow_1q1cerp</bpmn:outgoing></bpmn:serviceTask>
+      <bpmn:serviceTask id="write_iso_report" name="write_iso_report" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/iso" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="iso_raw" />
+            <zeebe:header key="resultExpression" value="=response" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_056qd13</bpmn:incoming>
+        <bpmn:outgoing>Flow_1q1cerp</bpmn:outgoing>
+      </bpmn:serviceTask>
       <bpmn:scriptTask id="Activity_1uiy774" name="Extract Incident IP">
         <bpmn:extensionElements>
           <zeebe:script expression="=if ioc_results.ips[1] != null &#10;then ioc_results.ips[1] &#10;else &#34;Unknown&#34;" resultVariable="incident_ip" />
@@ -200,7 +270,30 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
     <bpmn:subProcess id="Activity_0w8ynwr" name="Analyze Threat (AI)">
       <bpmn:incoming>Flow_184d9q1</bpmn:incoming>
       <bpmn:outgoing>Flow_0fqftcs</bpmn:outgoing>
-      <bpmn:serviceTask id="Threat_Interpretation_AI" name="Threat Interpretation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/threat" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultExpression" value="={&#10;  llm_raw_output: {body: response.body}&#10;}" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements><bpmn:incoming>Flow_1xh5snp</bpmn:incoming><bpmn:outgoing>Flow_1j4m7vi</bpmn:outgoing></bpmn:serviceTask>
+      <bpmn:serviceTask id="Threat_Interpretation_AI" name="Threat Interpretation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/threat" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={&#10;  llm_raw_output: {body: response.body}&#10;}" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1xh5snp</bpmn:incoming>
+        <bpmn:outgoing>Flow_1j4m7vi</bpmn:outgoing>
+      </bpmn:serviceTask>
       <bpmn:scriptTask id="Parse_Threat_AI_Analysis" name="Parse Threat AI Analysis">
         <bpmn:extensionElements>
           <zeebe:script expression="={&#10;  raw_text: &#10;    if llm_raw_output != null &#10;       and llm_raw_output.body != null &#10;       and llm_raw_output.body.content != null &#10;       and count(llm_raw_output.body.content) &#62; 0 &#10;       and llm_raw_output.body.content[1] != null&#10;       and llm_raw_output.body.content[1].text != null&#10;    then llm_raw_output.body.content[1].text&#10;    else null,&#10;&#10;  /* ================= MANUELLE FELD-EXTRAKTION ================= */&#10;&#10;  llm_threat_type:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;threat_type\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_attack_stage:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;attack_stage\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_intent:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;intent\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_impact_hint:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;impact_hint\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else &#34;low&#34;,&#10;&#10;  llm_urgency_hint:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;urgency_hint\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else &#34;low&#34;,&#10;&#10;  llm_confidence:&#10;    if raw_text != null&#10;    then number(trim(substring before(substring after(raw_text, &#34;\&#34;confidence\&#34;: &#34;), &#34;,&#34;)))&#10;    else 0.5,&#10;&#10;  llm_explanation:&#10;    if raw_text != null&#10;    then trim(substring before(substring after(raw_text, &#34;\&#34;explanation\&#34;: \&#34;&#34;), &#34;\&#34;&#34;))&#10;    else &#34;Keine Reason vorhanden&#34;,&#10;&#10;  /* Debug */&#10;  parse_success: true,&#10;  raw_text_preview: if raw_text != null then substring(raw_text, 1, 300) else null&#10;}" resultVariable="llm_analysis" />
@@ -234,8 +327,56 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
         <bpmn:outgoing>Flow_0dn6uic</bpmn:outgoing>
       </bpmn:scriptTask>
       <bpmn:sequenceFlow id="Flow_03y4swm" sourceRef="Short_Description_AI" targetRef="llm_explanation_AI" />
-      <bpmn:serviceTask id="Short_Description_AI" name="Short_Description AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/short_desc" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultVariable" value="short_description_raw" /><zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements><bpmn:incoming>Flow_0hxjfpm</bpmn:incoming><bpmn:outgoing>Flow_03y4swm</bpmn:outgoing></bpmn:serviceTask>
-      <bpmn:serviceTask id="llm_explanation_AI" name="llm_explanation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13"><bpmn:extensionElements><zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" /><zeebe:ioMapping><zeebe:input source="noAuth" target="authentication.type" /><zeebe:input source="POST" target="method" /><zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" /><zeebe:input source="http://host.docker.internal:9997/explanation" target="url" /><zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" /><zeebe:input source="20" target="connectionTimeoutInSeconds" /><zeebe:input source="20" target="readTimeoutInSeconds" /><zeebe:input source="false" target="storeResponse" /><zeebe:input source="false" target="followRedirects" /></zeebe:ioMapping><zeebe:taskHeaders><zeebe:header key="elementTemplateVersion" value="13" /><zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" /><zeebe:header key="resultVariable" value="llm_explanation_raw" /><zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" /><zeebe:header key="retryBackoff" value="PT0S" /></zeebe:taskHeaders></bpmn:extensionElements><bpmn:incoming>Flow_03y4swm</bpmn:incoming><bpmn:outgoing>Flow_1nka4il</bpmn:outgoing></bpmn:serviceTask>
+      <bpmn:serviceTask id="Short_Description_AI" name="Short_Description AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/short_desc" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="short_description_raw" />
+            <zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0hxjfpm</bpmn:incoming>
+        <bpmn:outgoing>Flow_03y4swm</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="llm_explanation_AI" name="llm_explanation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/explanation" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="llm_explanation_raw" />
+            <zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_03y4swm</bpmn:incoming>
+        <bpmn:outgoing>Flow_1nka4il</bpmn:outgoing>
+      </bpmn:serviceTask>
       <bpmn:sequenceFlow id="Flow_1nka4il" sourceRef="llm_explanation_AI" targetRef="Mini_Asset_Detection" />
       <bpmn:sequenceFlow id="Flow_0hxjfpm" sourceRef="Activity_1mmn11d" targetRef="Short_Description_AI" />
       <bpmn:scriptTask id="Activity_1mmn11d" name="Detect Real Incident">
@@ -395,9 +536,6 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
       <bpmn:outgoing>Flow_0kepnhr</bpmn:outgoing>
     </bpmn:callActivity>
     <bpmn:sequenceFlow id="Flow_0kepnhr" sourceRef="Call_Scenario_Processor" targetRef="Activity_1rkk3bi" />
-    <bpmn:startEvent id="Start_Process" name="Start Process">
-      <bpmn:outgoing>Flow_0mneppf</bpmn:outgoing>
-    </bpmn:startEvent>
     <bpmn:sequenceFlow id="Flow_0mneppf" sourceRef="Start_Process" targetRef="Call_Scenario_Processor" />
     <bpmn:scriptTask id="Activity_0tgi495" name="Initialize Timestamp">
       <bpmn:extensionElements>
@@ -529,160 +667,182 @@ and count(agent_plan.tools) &gt; 0</bpmn:conditionExpression>
     </bpmn:subProcess>
     <bpmn:sequenceFlow id="Flow_0r6uqpc" sourceRef="Activity_0tgi495" targetRef="Ticket_Creation" />
     <bpmn:sequenceFlow id="Flow_0jnoav8" sourceRef="Activity_0uj3i4a" targetRef="Create_Audit_Sections" />
+    <bpmn:startEvent id="Start_Process" name="Start Process" zeebe:modelerTemplate="io.camunda.connectors.inbound.KafkaMessageStart.v1" zeebe:modelerTemplateVersion="7" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg==">
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="io.camunda:connector-kafka-inbound:1" />
+          <zeebe:property name="authenticationType" value="custom" />
+          <zeebe:property name="topic.bootstrapServers" value="kafka:9094" />
+          <zeebe:property name="topic.topicName" value="security-events" />
+          <zeebe:property name="groupId" value="incident-intake-consumer" />
+          <zeebe:property name="autoOffsetReset" value="latest" />
+          <zeebe:property name="schemaStrategy.type" value="noSchema" />
+          <zeebe:property name="consumeUnmatchedEvents" value="true" />
+          <zeebe:property name="correlationRequired" value="notRequired" />
+          <zeebe:property name="deduplicationModeManualFlag" value="false" />
+          <zeebe:property name="deduplicationMode" value="AUTO" />
+          <zeebe:property name="resultVariable" value="" />
+          <zeebe:property name="resultExpression" value="={incident_topic: value.incident_topic, scenario_type: value.scenario_type}" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_0mneppf</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0m39rc8" messageRef="Message_0v98ura" />
+    </bpmn:startEvent>
   </bpmn:process>
+  <bpmn:message id="Message_0v98ura" name="36184a82-1e1d-4b89-8240-f281f5d5568b" zeebe:modelerTemplate="io.camunda.connectors.inbound.KafkaMessageStart.v1" />
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_vprqirj">
       <bpmndi:BPMNShape id="Activity_1nhkciu_di" bpmnElement="ISMS_Incident_Review">
-        <dc:Bounds x="1110" y="340" width="100" height="80" />
+        <dc:Bounds x="1790" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1kp3xti_di" bpmnElement="Activity_1rkk3bi">
-        <dc:Bounds x="-220" y="350" width="100" height="80" />
+        <dc:Bounds x="460" y="250" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1uy3b5w_di" bpmnElement="AI_Investigation_Tools" isExpanded="true">
-        <dc:Bounds x="410" y="180" width="350" height="430" />
+        <dc:Bounds x="1090" y="80" width="350" height="430" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0aqp322_di" bpmnElement="threat_intel_lookup">
-        <dc:Bounds x="441" y="220" width="100" height="80" />
+        <dc:Bounds x="1121" y="120" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0taoj67_di" bpmnElement="asset_lookup">
-        <dc:Bounds x="592" y="420" width="100" height="80" />
+        <dc:Bounds x="1272" y="320" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_0ikin4d" bpmnElement="check_gdpr_relevance">
-        <dc:Bounds x="441" y="420" width="100" height="80" />
+        <dc:Bounds x="1121" y="320" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_05yofwt_di" bpmnElement="Gateway_05yofwt" isMarkerVisible="true">
-        <dc:Bounds x="295" y="365" width="50" height="50" />
+        <dc:Bounds x="975" y="265" width="50" height="50" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="276" y="335" width="89" height="27" />
+          <dc:Bounds x="967" y="235" width="67" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_0f83elm_di" bpmnElement="Gateway_0f83elm" isMarkerVisible="true">
-        <dc:Bounds x="825" y="355" width="50" height="50" />
+        <dc:Bounds x="1505" y="255" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_00lc2gi_di" bpmnElement="Prepare_Incident_Context">
-        <dc:Bounds x="-50" y="350" width="100" height="80" />
+        <dc:Bounds x="630" y="250" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0zatkod_di" bpmnElement="Activity_0w8ynwr">
-        <dc:Bounds x="120" y="350" width="100" height="80" />
+        <dc:Bounds x="800" y="250" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1qqfuhw_di" bpmnElement="Content_Enrichment">
-        <dc:Bounds x="950" y="340" width="100" height="80" />
+        <dc:Bounds x="1630" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_1pu30zs_di" bpmnElement="Event_1pu30zs">
-        <dc:Bounds x="2132" y="362" width="36" height="36" />
+        <dc:Bounds x="2812" y="262" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="2115" y="405" width="70" height="14" />
+          <dc:Bounds x="2796" y="305" width="69" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_059t501_di" bpmnElement="Audit_Report">
-        <dc:Bounds x="1940" y="340" width="100" height="80" />
+        <dc:Bounds x="2620" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1o1j9lm_di" bpmnElement="Create_Audit_Sections">
-        <dc:Bounds x="1750" y="340" width="100" height="80" />
+        <dc:Bounds x="2430" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1vav7bu_di" bpmnElement="Activity_0uj3i4a">
-        <dc:Bounds x="1580" y="340" width="100" height="80" />
+        <dc:Bounds x="2260" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1dr2ggo_di" bpmnElement="Call_Scenario_Processor">
-        <dc:Bounds x="-390" y="350" width="100" height="80" />
+        <dc:Bounds x="290" y="250" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape id="Event_0ahxtvn_di" bpmnElement="Start_Process">
-        <dc:Bounds x="-508" y="372" width="36" height="36" />
-        <bpmndi:BPMNLabel>
-          <dc:Bounds x="-523" y="415" width="67" height="14" />
-        </bpmndi:BPMNLabel>
-      </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="BPMNShape_10zydlj" bpmnElement="Activity_0tgi495">
-        <dc:Bounds x="1260" y="340" width="100" height="80" />
+        <dc:Bounds x="1940" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_01nfqqh_di" bpmnElement="Ticket_Creation">
-        <dc:Bounds x="1410" y="340" width="100" height="80" />
+        <dc:Bounds x="2090" y="240" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0537q5w_di" bpmnElement="Start_Process">
+        <dc:Bounds x="172" y="272" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="157" y="315" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_1jzlpls_di" bpmnElement="Flow_1jzlpls">
-        <di:waypoint x="1210" y="380" />
-        <di:waypoint x="1260" y="380" />
+        <di:waypoint x="1890" y="280" />
+        <di:waypoint x="1940" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1qc7jlo_di" bpmnElement="Flow_1qc7jlo">
-        <di:waypoint x="-120" y="390" />
-        <di:waypoint x="-50" y="390" />
+        <di:waypoint x="560" y="290" />
+        <di:waypoint x="630" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_19u3phd_di" bpmnElement="Flow_19u3phd">
-        <di:waypoint x="760" y="380" />
-        <di:waypoint x="825" y="380" />
+        <di:waypoint x="1440" y="280" />
+        <di:waypoint x="1505" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_03n63ai_di" bpmnElement="Flow_03n63ai">
-        <di:waypoint x="345" y="390" />
-        <di:waypoint x="410" y="390" />
+        <di:waypoint x="1025" y="290" />
+        <di:waypoint x="1090" y="290" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="371" y="372" width="13" height="14" />
+          <dc:Bounds x="1049" y="272" width="18" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1b2bwld_di" bpmnElement="Flow_1b2bwld">
-        <di:waypoint x="875" y="380" />
-        <di:waypoint x="950" y="380" />
+        <di:waypoint x="1555" y="280" />
+        <di:waypoint x="1630" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_167ixj6_di" bpmnElement="Flow_167ixj6">
-        <di:waypoint x="320" y="415" />
-        <di:waypoint x="320" y="700" />
-        <di:waypoint x="850" y="700" />
-        <di:waypoint x="850" y="405" />
+        <di:waypoint x="1000" y="315" />
+        <di:waypoint x="1000" y="600" />
+        <di:waypoint x="1530" y="600" />
+        <di:waypoint x="1530" y="305" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="328" y="443" width="23" height="14" />
+          <dc:Bounds x="1012" y="343" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_184d9q1_di" bpmnElement="Flow_184d9q1">
-        <di:waypoint x="50" y="390" />
-        <di:waypoint x="120" y="390" />
+        <di:waypoint x="730" y="290" />
+        <di:waypoint x="800" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0fqftcs_di" bpmnElement="Flow_0fqftcs">
-        <di:waypoint x="220" y="390" />
-        <di:waypoint x="295" y="390" />
+        <di:waypoint x="900" y="290" />
+        <di:waypoint x="975" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1rq39js_di" bpmnElement="Flow_1rq39js">
-        <di:waypoint x="1050" y="380" />
-        <di:waypoint x="1110" y="380" />
+        <di:waypoint x="1730" y="280" />
+        <di:waypoint x="1790" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1eiz0y2_di" bpmnElement="Flow_1eiz0y2">
-        <di:waypoint x="1850" y="380" />
-        <di:waypoint x="1940" y="380" />
+        <di:waypoint x="2530" y="280" />
+        <di:waypoint x="2620" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_10q65j1_di" bpmnElement="Flow_10q65j1">
-        <di:waypoint x="1510" y="380" />
-        <di:waypoint x="1580" y="380" />
+        <di:waypoint x="2190" y="280" />
+        <di:waypoint x="2260" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0ljujq2_di" bpmnElement="Flow_0ljujq2">
-        <di:waypoint x="2040" y="380" />
-        <di:waypoint x="2132" y="380" />
+        <di:waypoint x="2720" y="280" />
+        <di:waypoint x="2812" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0kepnhr_di" bpmnElement="Flow_0kepnhr">
-        <di:waypoint x="-290" y="390" />
-        <di:waypoint x="-220" y="390" />
+        <di:waypoint x="390" y="290" />
+        <di:waypoint x="460" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0mneppf_di" bpmnElement="Flow_0mneppf">
-        <di:waypoint x="-472" y="390" />
-        <di:waypoint x="-390" y="390" />
+        <di:waypoint x="208" y="290" />
+        <di:waypoint x="290" y="290" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0r6uqpc_di" bpmnElement="Flow_0r6uqpc">
-        <di:waypoint x="1360" y="380" />
-        <di:waypoint x="1410" y="380" />
+        <di:waypoint x="2040" y="280" />
+        <di:waypoint x="2090" y="280" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0jnoav8_di" bpmnElement="Flow_0jnoav8">
-        <di:waypoint x="1680" y="380" />
-        <di:waypoint x="1750" y="380" />
+        <di:waypoint x="2360" y="280" />
+        <di:waypoint x="2430" y="280" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

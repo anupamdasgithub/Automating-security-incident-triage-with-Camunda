@@ -9,3 +9,15 @@ docker exec connectors wget -qO- http://host.docker.internal:9998/health
 
 
 python3 ~/incident_producer.py FULL  /// fore an event 
+
+
+Producer + stub work. Kafka broker runs (KRaft, bitnami 3.9, listeners kafka:9094 internal / localhost:9092 external).
+
+
+Where to track the Kafka event?
+
+docker exec kafka kafka-console-consumer.sh --bootstrap-server localhost:9094 \
+  --topic security-events --from-beginning --timeout-ms 5000
+
+docker exec kafka kafka-consumer-groups.sh --bootstrap-server localhost:9094 \
+  --describe --group incident-intake-consumer-agentic
