@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="d0de47f" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="1f76d31" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
   <bpmn:process id="Start_Incident_Type_Selection" name="Start Incident Type Selection" isExecutable="true">
     <bpmn:startEvent id="scenario_processor_start" name="Scenario Processor Start">
       <bpmn:outgoing>Flow_1sqrpw7</bpmn:outgoing>
@@ -11,16 +11,16 @@
           <zeebe:input source="noAuth" target="authentication.type" />
           <zeebe:input source="POST" target="method" />
           <zeebe:input source="http://host.docker.internal:9998/invoke" target="url" />
-          <zeebe:input source="={&#34;incident_topic&#34;: sim_input.incident_topic}" target="body" />
-          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
-          <zeebe:input source="20" target="readTimeoutInSeconds" />
           <zeebe:input source="false" target="storeResponse" />
           <zeebe:input source="false" target="followRedirects" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="20" target="readTimeoutInSeconds" />
+          <zeebe:input source="={&#34;incident_topic&#34;: sim_input.incident_topic}" target="body" />
         </zeebe:ioMapping>
         <zeebe:taskHeaders>
           <zeebe:header key="elementTemplateVersion" value="13" />
           <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
-          <zeebe:header key="resultExpression" value="={&#10;  sim_input: {&#10;    incident_topic: sim_topic.incident_topic,&#10;    raw_alert: response.body.raw_alert,&#10;    incident_type: response.body.incident_type&#10;  }&#10;}" />
+          <zeebe:header key="resultVariable" value="scenario_raw" />
           <zeebe:header key="retryBackoff" value="PT0S" />
         </zeebe:taskHeaders>
       </bpmn:extensionElements>
@@ -30,9 +30,9 @@
     <bpmn:sequenceFlow id="Flow_0zi105u" sourceRef="Activity_0h5dq03" targetRef="Szenario_Generieren_KI" />
     <bpmn:sequenceFlow id="Flow_1sqrpw7" sourceRef="scenario_processor_start" targetRef="Szenario_Typ_Selection" />
     <bpmn:intermediateThrowEvent id="Event_0p7niyh">
-      <bpmn:incoming>Flow_1pwzgo0</bpmn:incoming>
+      <bpmn:incoming>Flow_0eblk4s</bpmn:incoming>
     </bpmn:intermediateThrowEvent>
-    <bpmn:sequenceFlow id="Flow_1pwzgo0" sourceRef="Szenario_Generieren_KI" targetRef="Event_0p7niyh" />
+    <bpmn:sequenceFlow id="Flow_1pwzgo0" sourceRef="Szenario_Generieren_KI" targetRef="Activity_03jnnw0" />
     <bpmn:sequenceFlow id="Flow_1rmo2ip" sourceRef="Szenario_Typ_Selection" targetRef="Activity_0h5dq03" />
     <bpmn:userTask id="Szenario_Typ_Selection" name="ISMS Scenario Type Selection">
       <bpmn:extensionElements>
@@ -49,44 +49,63 @@
       <bpmn:incoming>Flow_1rmo2ip</bpmn:incoming>
       <bpmn:outgoing>Flow_0zi105u</bpmn:outgoing>
     </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_0eblk4s" sourceRef="Activity_03jnnw0" targetRef="Event_0p7niyh" />
+    <bpmn:scriptTask id="Activity_03jnnw0" name="Build_Sim_Input">
+      <bpmn:extensionElements>
+        <zeebe:script expression="={&#10;  sim_input: {&#10;    incident_topic: sim_topic.incident_topic,&#10;    raw_alert: scenario_raw.body.raw_alert,&#10;    incident_type: scenario_raw.body.incident_type&#10;  }&#10;}" resultVariable="mapped" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=mapped.sim_input" target="sim_input" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1pwzgo0</bpmn:incoming>
+      <bpmn:outgoing>Flow_0eblk4s</bpmn:outgoing>
+    </bpmn:scriptTask>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Start_Incident_Type_Selection">
       <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="scenario_processor_start">
-        <dc:Bounds x="-18" y="222" width="36" height="36" />
+        <dc:Bounds x="172" y="102" width="36" height="36" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="-38" y="265" width="77" height="27" />
+          <dc:Bounds x="153" y="145" width="76" height="27" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0x2eee6_di" bpmnElement="Szenario_Generieren_KI">
-        <dc:Bounds x="420" y="200" width="100" height="80" />
+        <dc:Bounds x="610" y="80" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Event_0p7niyh_di" bpmnElement="Event_0p7niyh">
-        <dc:Bounds x="592" y="222" width="36" height="36" />
+        <dc:Bounds x="1002" y="102" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0pyq91f_di" bpmnElement="Szenario_Typ_Selection">
-        <dc:Bounds x="110" y="200" width="100" height="80" />
+        <dc:Bounds x="300" y="80" width="100" height="80" />
         <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1ewzoye_di" bpmnElement="Activity_0h5dq03">
-        <dc:Bounds x="260" y="200" width="100" height="80" />
+        <dc:Bounds x="450" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0ke4woj_di" bpmnElement="Activity_03jnnw0">
+        <dc:Bounds x="800" y="80" width="100" height="80" />
+        <bpmndi:BPMNLabel />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_0zi105u_di" bpmnElement="Flow_0zi105u">
-        <di:waypoint x="360" y="240" />
-        <di:waypoint x="420" y="240" />
+        <di:waypoint x="550" y="120" />
+        <di:waypoint x="610" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1sqrpw7_di" bpmnElement="Flow_1sqrpw7">
-        <di:waypoint x="18" y="240" />
-        <di:waypoint x="110" y="240" />
+        <di:waypoint x="208" y="120" />
+        <di:waypoint x="300" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1pwzgo0_di" bpmnElement="Flow_1pwzgo0">
-        <di:waypoint x="520" y="240" />
-        <di:waypoint x="592" y="240" />
+        <di:waypoint x="710" y="120" />
+        <di:waypoint x="800" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1rmo2ip_di" bpmnElement="Flow_1rmo2ip">
-        <di:waypoint x="210" y="240" />
-        <di:waypoint x="260" y="240" />
+        <di:waypoint x="400" y="120" />
+        <di:waypoint x="450" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0eblk4s_di" bpmnElement="Flow_0eblk4s">
+        <di:waypoint x="900" y="120" />
+        <di:waypoint x="1002" y="120" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
