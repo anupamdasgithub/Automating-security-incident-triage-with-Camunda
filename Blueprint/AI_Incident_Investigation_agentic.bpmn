@@ -1,0 +1,1186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:zeebe="http://camunda.org/schema/zeebe/1.0" xmlns:modeler="http://camunda.org/schema/modeler/1.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Web Modeler" exporterVersion="1f76d31" modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.10.0">
+  <bpmn:process id="Process_agentic_soc" name="AI Incident Investigation - Agentic (MCP)" isExecutable="true">
+    <bpmn:userTask id="ISMS_Incident_Review" name="ISMS Incident Review">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="Incident_Validation" />
+        <zeebe:ioMapping>
+          <zeebe:input source="=string(incident_object.impact)" target="suggested_impact" />
+          <zeebe:input source="=string(incident_object.urgency)" target="suggested_urgency" />
+          <zeebe:input source="=string(incident_object.impact)" target="ai_impact_orig" />
+          <zeebe:input source="=string(incident_object.urgency)" target="ai_urgency_orig" />
+          <zeebe:output source="=number(suggested_impact)" target="final_impact" />
+          <zeebe:output source="=number(suggested_urgency)" target="final_urgency" />
+          <zeebe:output source="=human_comment" target="human_comment" />
+          <zeebe:output source="=audit_decision" target="audit_decision" />
+          <zeebe:output source="=gdpr_decision" target="gdpr_decision" />
+          <zeebe:output source="=gdpr_abort_comment" target="gdpr_abort_comment" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1rq39js</bpmn:incoming>
+      <bpmn:outgoing>Flow_1jzlpls</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1jzlpls" sourceRef="ISMS_Incident_Review" targetRef="Activity_0tgi495" />
+    <bpmn:sequenceFlow id="Flow_1qc7jlo" sourceRef="Activity_1rkk3bi" targetRef="Prepare_Incident_Context" />
+    <bpmn:serviceTask id="Activity_1rkk3bi" name="AI INCIDENT PLANNER" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="noAuth" target="authentication.type" />
+          <zeebe:input source="POST" target="method" />
+          <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+          <zeebe:input source="http://host.docker.internal:9997/planner" target="url" />
+          <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+          <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+          <zeebe:input source="20" target="readTimeoutInSeconds" />
+          <zeebe:input source="false" target="storeResponse" />
+          <zeebe:input source="false" target="followRedirects" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="13" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+          <zeebe:header key="resultVariable" value="tools" />
+          <zeebe:header key="resultExpression" value="={&#10;  &#34;raw&#34;: body.content[1].text,&#10;&#10;  &#34;clean_json&#34;:&#10;    trim(&#10;      replace(&#10;        replace(&#10;          body.content[1].text,&#10;          &#34;```json&#34;,&#10;          &#34;&#34;&#10;        ),&#10;        &#34;```&#34;,&#10;        &#34;&#34;&#10;      )&#10;    ),&#10;&#10;  &#34;agent_plan&#34;:&#10;    from json(&#10;      trim(&#10;        replace(&#10;          replace(&#10;            body.content[1].text,&#10;            &#34;```json&#34;,&#10;            &#34;&#34;&#10;          ),&#10;          &#34;```&#34;,&#10;          &#34;&#34;&#10;        )&#10;      )&#10;    ),&#10;&#10;  &#34;tools&#34;:&#10;    if get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    ) != null&#10;    then get value(&#10;      from json(&#10;        trim(&#10;          replace(&#10;            replace(&#10;              body.content[1].text,&#10;              &#34;```json&#34;,&#10;              &#34;&#34;&#10;            ),&#10;            &#34;```&#34;,&#10;            &#34;&#34;&#10;          )&#10;        )&#10;      ),&#10;      &#34;tools&#34;&#10;    )&#10;    else []&#10;}" />
+          <zeebe:header key="retryBackoff" value="PT0S" />
+        </zeebe:taskHeaders>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0kepnhr</bpmn:incoming>
+      <bpmn:outgoing>Flow_1qc7jlo</bpmn:outgoing>
+    </bpmn:serviceTask>
+    <bpmn:subProcess id="Prepare_Incident_Context" name="Prepare Incident Context">
+      <bpmn:incoming>Flow_1qc7jlo</bpmn:incoming>
+      <bpmn:outgoing>Flow_184d9q1</bpmn:outgoing>
+      <bpmn:startEvent id="Event_0n3s93g">
+        <bpmn:outgoing>Flow_07u1h65</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:endEvent id="Event_1dhtg60">
+        <bpmn:extensionElements />
+        <bpmn:incoming>Flow_03vegbc</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:scriptTask id="Activity_1tugk73" name="Extract Tool Plan">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=if agent_plan.tools != null&#10;  then agent_plan.tools&#10;  else []" resultVariable="tools" />
+          <zeebe:ioMapping>
+            <zeebe:output source="=(now() - @&#34;1970-01-01T00:00Z&#34;) / @&#34;PT1S&#34; * 1000" target="investigation_start" />
+            <zeebe:output source="=      {&#10;        dt: now(),&#10;        localDt: dt + duration(&#34;PT2H&#34;),  // winter time (PT1H, MEZ = UTC+1) - change to PT2H in summer&#10;&#10;        day:&#10;          if localDt.day &#60; 10&#10;          then &#34;0&#34; + string(localDt.day)&#10;          else string(localDt.day),&#10;&#10;        month:&#10;          substring(month of year(localDt), 1, 3),&#10;&#10;        year:&#10;          string(localDt.year),&#10;&#10;        hour:&#10;          if localDt.hour &#60; 10&#10;          then &#34;0&#34; + string(localDt.hour)&#10;          else string(localDt.hour),&#10;&#10;        minute:&#10;          if localDt.minute &#60; 10&#10;          then &#34;0&#34; + string(localDt.minute)&#10;          else string(localDt.minute),&#10;&#10;        second:&#10;          if localDt.second &#60; 10&#10;          then &#34;0&#34; + string(localDt.second)&#10;          else string(localDt.second),&#10;&#10;        formatted:&#10;          day + &#34;.&#34; + month + &#34; &#34; + year + &#34; &#34; +&#10;          hour + &#34;:&#34; + minute + &#34;:&#34; + second&#10;      }.formatted" target="creation_time" />
+          </zeebe:ioMapping>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_07u1h65</bpmn:incoming>
+        <bpmn:outgoing>Flow_1fpayh6</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Activity_0kmtlah" name="DEBUG">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=if tools = null&#10;then &#34;TOOLS = NULL&#34;&#10;else if count(tools) = 0&#10;then &#34;TOOLS = [] (keine Tools geplant)&#34;&#10;else &#34;TOOLS = &#34; + string join(tools,&#34;, &#34;)" resultVariable="used_tools" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1fpayh6</bpmn:incoming>
+        <bpmn:outgoing>Flow_056qd13</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Extract_Reports" name="Extract Reports">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  iso_report:&#10;    if iso_raw != null&#10;    then iso_raw.body.content[1].text&#10;    else null,&#10;&#10;  gdpr_result:&#10;    if gdpr_raw != null&#10;    then {&#10;      text: gdpr_raw.body.content[1].text,&#10;      is_relevant:&#10;        contains(&#10;          lower case(gdpr_raw.body.content[1].text),&#10;          &#34;relevanz: ja&#34;&#10;        )&#10;    }&#10;    else null&#10;}" resultVariable="ai_extract" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0zaatrx</bpmn:incoming>
+        <bpmn:outgoing>Flow_0sy75xp</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:serviceTask id="write_iso_report" name="write_iso_report" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/iso" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="iso_raw" />
+            <zeebe:header key="resultExpression" value="=response" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_056qd13</bpmn:incoming>
+        <bpmn:outgoing>Flow_1q1cerp</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:scriptTask id="Activity_1uiy774" name="Extract Incident IP">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=if ioc_results.ips[1] != null &#10;then ioc_results.ips[1] &#10;else &#34;Unknown&#34;" resultVariable="incident_ip" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1j22t3k</bpmn:incoming>
+        <bpmn:outgoing>Flow_1e2dmpo</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Find_IP_in_Topic" name="Find IP in Topic">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  ips: flatten(for word in split(sim_input.incident_topic, &#34; &#34;) return if matches(word, &#34;^(\\d{1,3}\\.){3}\\d{1,3}$&#34;) then word else []),&#10;  domains: flatten(for word in split(sim_input.incident_topic, &#34; &#34;) return if matches(word, &#34;^([a-z0-9]+(-[a-z0-9]+)*\\.)+[a-z]{2,}$&#34;) then word else []),&#10;  hashes: flatten(for word in split(sim_input.incident_topic, &#34; &#34;) return if matches(word, &#34;^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{64}$&#34;) then word else [])&#10;}" resultVariable="ioc_results" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0sy75xp</bpmn:incoming>
+        <bpmn:outgoing>Flow_1j22t3k</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Pre_Incident_Builder" name="Pre Incident Builder">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  topic:&#10;    lower case(&#10;      if sim_input != null and sim_input.incident_topic != null&#10;      then sim_input.incident_topic&#10;      else &#34;&#34;&#10;    ),&#10;&#10;  incident_ip:&#10;    if incident_ip != null and incident_ip != &#34;&#34;&#10;    then incident_ip&#10;    else null,&#10;&#10;  threat_score: 0,&#10;&#10;  threat_tags_string: &#34;&#34;,&#10;&#10;  threat_ports_string: &#34;&#34;,&#10;&#10;  threat_services_string: &#34;&#34;,&#10;&#10;  asset_criticality:&#10;    if asset_result != null and asset_result.business_criticality != null&#10;    then asset_result.business_criticality&#10;    else &#34;Unknown&#34;,&#10;&#10;  is_gdpr_relevant:&#10;    if gdpr_raw != null&#10;       and gdpr_raw.body != null&#10;       and gdpr_raw.body.content != null&#10;       and count(gdpr_raw.body.content) &#62; 0&#10;    then contains(lower case(gdpr_raw.body.content[1].text), &#34;relevanz: ja&#34;)&#10;    else false&#10;}" resultVariable="pre_incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1e2dmpo</bpmn:incoming>
+        <bpmn:outgoing>Flow_03vegbc</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_1fpayh6" sourceRef="Activity_1tugk73" targetRef="Activity_0kmtlah" />
+      <bpmn:sequenceFlow id="Flow_056qd13" sourceRef="Activity_0kmtlah" targetRef="write_iso_report" />
+      <bpmn:sequenceFlow id="Flow_1q1cerp" sourceRef="write_iso_report" targetRef="Extract_ISO_Text" />
+      <bpmn:sequenceFlow id="Flow_0sy75xp" sourceRef="Extract_Reports" targetRef="Find_IP_in_Topic" />
+      <bpmn:sequenceFlow id="Flow_1j22t3k" sourceRef="Find_IP_in_Topic" targetRef="Activity_1uiy774" />
+      <bpmn:sequenceFlow id="Flow_1e2dmpo" sourceRef="Activity_1uiy774" targetRef="Pre_Incident_Builder" />
+      <bpmn:sequenceFlow id="Flow_07u1h65" sourceRef="Event_0n3s93g" targetRef="Activity_1tugk73" />
+      <bpmn:sequenceFlow id="Flow_03vegbc" sourceRef="Pre_Incident_Builder" targetRef="Event_1dhtg60" />
+      <bpmn:sequenceFlow id="Flow_1gogfkf" sourceRef="Extract_ISO_Text" targetRef="Extract_ISO_Mapping" />
+      <bpmn:scriptTask id="Extract_ISO_Text" name="Extract ISO Text">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=if iso_raw.body.content[1].text != null&#10;then iso_raw.body.content[1].text&#10;else iso_raw.body.content[0].text" resultVariable="iso_text" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1q1cerp</bpmn:incoming>
+        <bpmn:outgoing>Flow_1gogfkf</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_1oxssyk" sourceRef="Extract_ISO_Mapping" targetRef="Extract_ISO_Controls" />
+      <bpmn:scriptTask id="Extract_ISO_Mapping" name="Extract ISO Mapping">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=substring before(&#10;  substring after(iso_text, &#34;3. ISO 27001 MAPPING:&#34;),&#10;  &#34;---&#34;&#10;)" resultVariable="iso_mapping" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1gogfkf</bpmn:incoming>
+        <bpmn:outgoing>Flow_1oxssyk</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_0zaatrx" sourceRef="Extract_ISO_Controls" targetRef="Extract_Reports" />
+      <bpmn:scriptTask id="Extract_ISO_Controls" name="Extract ISO Controls">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=flatten(&#10;  for line in split(iso_mapping, &#34;\n&#34;) return&#10;    if line != &#34;&#34; and contains(line, &#34;A.&#34;)&#10;    then [{&#10;      text: substring after(line, &#34;. &#34;),&#10;      status: &#34;PENDING&#34;&#10;    }]&#10;    else []&#10;)" resultVariable="iso_controls" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1oxssyk</bpmn:incoming>
+        <bpmn:outgoing>Flow_0zaatrx</bpmn:outgoing>
+      </bpmn:scriptTask>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_184d9q1" sourceRef="Prepare_Incident_Context" targetRef="Activity_0w8ynwr" />
+    <bpmn:subProcess id="Activity_0w8ynwr" name="Analyze Threat (AI)">
+      <bpmn:incoming>Flow_184d9q1</bpmn:incoming>
+      <bpmn:outgoing>Flow_agent_in</bpmn:outgoing>
+      <bpmn:serviceTask id="Threat_Interpretation_AI" name="Threat Interpretation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/threat" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="={&#10;  llm_raw_output: {body: response.body}&#10;}" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1xh5snp</bpmn:incoming>
+        <bpmn:outgoing>Flow_1j4m7vi</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:scriptTask id="Parse_Threat_AI_Analysis" name="Parse Threat AI Analysis">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  raw_text: &#10;    if llm_raw_output != null &#10;       and llm_raw_output.body != null &#10;       and llm_raw_output.body.content != null &#10;       and count(llm_raw_output.body.content) &#62; 0 &#10;       and llm_raw_output.body.content[1] != null&#10;       and llm_raw_output.body.content[1].text != null&#10;    then llm_raw_output.body.content[1].text&#10;    else null,&#10;&#10;  /* ================= MANUELLE FELD-EXTRAKTION ================= */&#10;&#10;  llm_threat_type:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;threat_type\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_attack_stage:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;attack_stage\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_intent:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;intent\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else null,&#10;&#10;  llm_impact_hint:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;impact_hint\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else &#34;low&#34;,&#10;&#10;  llm_urgency_hint:&#10;    if raw_text != null&#10;    then lower case(trim(substring before(substring after(raw_text, &#34;\&#34;urgency_hint\&#34;: \&#34;&#34;), &#34;\&#34;&#34;)))&#10;    else &#34;low&#34;,&#10;&#10;  llm_confidence:&#10;    if raw_text != null&#10;    then number(trim(substring before(substring after(raw_text, &#34;\&#34;confidence\&#34;: &#34;), &#34;,&#34;)))&#10;    else 0.5,&#10;&#10;  llm_explanation:&#10;    if raw_text != null&#10;    then trim(substring before(substring after(raw_text, &#34;\&#34;explanation\&#34;: \&#34;&#34;), &#34;\&#34;&#34;))&#10;    else &#34;Keine Reason vorhanden&#34;,&#10;&#10;  /* Debug */&#10;  parse_success: true,&#10;  raw_text_preview: if raw_text != null then substring(raw_text, 1, 300) else null&#10;}" resultVariable="llm_analysis" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1j4m7vi</bpmn:incoming>
+        <bpmn:outgoing>Flow_0xm84ex</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Activity_0knsst7" name="Agent Plan Normalizer">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;tools:&#10;&#10;  if agent_plan = null&#10;     or agent_plan.tools = null&#10;     or count(agent_plan.tools) = 0&#10;  then&#10;&#10;    /* 🔥 INTELLIGENTER FALLBACK */&#10;&#10;    if incident_ip != null&#10;       and incident_ip != &#34;&#34;&#10;       and incident_ip != &#34;Unknown&#34;&#10;    then [&#34;threat_intel_lookup&#34;]&#10;&#10;    else []&#10;&#10;  else&#10;&#10;    (&#10;      for t in agent_plan.tools&#10;      return&#10;&#10;        /* 🔴 Threat Intel nur mit IP */&#10;        if t = &#34;threat_intel_lookup&#34;&#10;           and not(&#10;             incident_ip != null&#10;             and incident_ip != &#34;&#34;&#10;             and incident_ip != &#34;Unknown&#34;&#10;           )&#10;        then null&#10;&#10;        /* 🔴 Asset Lookup nur bei asset_hint */&#10;	   else if t = &#34;asset_lookup&#34;&#10;	     and asset_detection.asset_hint = null&#10;	     and not(contains(topic, &#34;-&#34;))&#10;	   then null&#10;        &#10;          &#10;                    &#10;        else t&#10;    )[item != null]&#10;}" resultVariable="agent_plan" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0dn6uic</bpmn:incoming>
+        <bpmn:outgoing>Analyze_Threat_AI</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_1j4m7vi" sourceRef="Threat_Interpretation_AI" targetRef="Parse_Threat_AI_Analysis" />
+      <bpmn:sequenceFlow id="Flow_0xm84ex" sourceRef="Parse_Threat_AI_Analysis" targetRef="Activity_1mmn11d" />
+      <bpmn:startEvent id="Event_0z0owd2">
+        <bpmn:outgoing>Flow_1xh5snp</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:sequenceFlow id="Flow_1xh5snp" sourceRef="Event_0z0owd2" targetRef="Threat_Interpretation_AI" />
+      <bpmn:endEvent id="Event_1h9txkw">
+        <bpmn:incoming>Analyze_Threat_AI</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Analyze_Threat_AI" name="Analyze Threat (AI)" sourceRef="Activity_0knsst7" targetRef="Event_1h9txkw" />
+      <bpmn:sequenceFlow id="Flow_0dn6uic" sourceRef="Mini_Asset_Detection" targetRef="Activity_0knsst7" />
+      <bpmn:scriptTask id="Mini_Asset_Detection" name="Mini Asset Detection">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  asset_hint:&#10;&#10;    if contains(lower case(sim_input.incident_topic), &#34;crm-prod-&#34;)&#10;    then &#34;CRM-PROD-02&#34;&#10;&#10;    else if contains(lower case(sim_input.incident_topic), &#34;db-prod-&#34;)&#10;    then &#34;DB-PROD-02&#34;&#10;&#10;    else if contains(lower case(sim_input.incident_topic), &#34;auth-01&#34;)&#10;    then &#34;AUTH-01&#34;&#10;&#10;    else null&#10;}" resultVariable="asset_detection" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1nka4il</bpmn:incoming>
+        <bpmn:outgoing>Flow_0dn6uic</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_03y4swm" sourceRef="Short_Description_AI" targetRef="llm_explanation_AI" />
+      <bpmn:serviceTask id="Short_Description_AI" name="Short_Description AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/short_desc" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="short_description_raw" />
+            <zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0hxjfpm</bpmn:incoming>
+        <bpmn:outgoing>Flow_03y4swm</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:serviceTask id="llm_explanation_AI" name="llm_explanation AI" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="http://host.docker.internal:9997/explanation" target="url" />
+            <zeebe:input source="={ &#34;q&#34;: &#34;go&#34; }" target="body" />
+            <zeebe:input source="20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="20" target="readTimeoutInSeconds" />
+            <zeebe:input source="false" target="storeResponse" />
+            <zeebe:input source="false" target="followRedirects" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="llm_explanation_raw" />
+            <zeebe:header key="resultExpression" value="=from json(&#10;  trim(&#10;    replace(&#10;      replace(&#10;        body.content[1].text,&#10;        &#34;```json&#34;,&#10;        &#34;&#34;&#10;      ),&#10;      &#34;```&#34;,&#10;      &#34;&#34;&#10;    )&#10;  )&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_03y4swm</bpmn:incoming>
+        <bpmn:outgoing>Flow_1nka4il</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_1nka4il" sourceRef="llm_explanation_AI" targetRef="Mini_Asset_Detection" />
+      <bpmn:sequenceFlow id="Flow_0hxjfpm" sourceRef="Activity_1mmn11d" targetRef="Short_Description_AI" />
+      <bpmn:scriptTask id="Activity_1mmn11d" name="Detect Real Incident">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;  /* ======================= INPUT NORMALIZATION ======================= */&#10;&#10;  topic_clean:&#10;    lower case(&#10;      if sim_input != null and sim_input.incident_topic != null&#10;      then sim_input.incident_topic&#10;      else &#34;&#34;&#10;    ),&#10;&#10;&#10;  /* ======================= BENIGN SIGNALS ======================= */&#10;&#10;  benign_hit:&#10;&#10;    sum(&#10;      for keyword in [&#10;&#10;        &#34;geplant&#34;,&#10;        &#34;genehmigt&#34;,&#10;        &#34;security scan&#34;,&#10;        &#34;internes it-team&#34;,&#10;        &#34;change-system dokumentiert&#34;&#10;&#10;      ]&#10;&#10;      return&#10;        if contains(topic_clean, keyword)&#10;        then 1&#10;        else 0&#10;    ),&#10;&#10;&#10;  /* ======================= MALICIOUS SIGNALS ======================= */&#10;&#10;  malicious_hit:&#10;&#10;    sum(&#10;      for keyword in [&#10;&#10;        &#34;verdacht&#34;,&#10;        &#34;scan activity&#34;,&#10;        &#34;proxy&#34;,&#10;        &#34;vpn&#34;,&#10;        &#34;unbefugt&#34;,&#10;        &#34;datenabfluss&#34;,&#10;        &#34;zugriffe&#34;,&#10;        &#34;sql injection&#34;,&#10;        &#34;cpu-spitzen&#34;,&#10;        &#34;unusual&#34;&#10;&#10;      ]&#10;&#10;      return&#10;        if contains(topic_clean, keyword)&#10;        then 1&#10;        else 0&#10;    ),&#10;&#10;&#10;  /* ======================= FINAL DECISION ======================= */&#10;&#10;  is_real_incident:&#10;&#10;    /* 🟢 BENIGN */&#10;    if benign_hit &#62;= 2&#10;       and malicious_hit = 0&#10;    then false&#10;&#10;    /* 🔴 INCIDENT */&#10;    else if malicious_hit &#62;= 1&#10;    then true&#10;&#10;    /* 🔵 FALLBACK */&#10;    else true&#10;}" resultVariable="detect_real_incident_result" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0xm84ex</bpmn:incoming>
+        <bpmn:outgoing>Flow_0hxjfpm</bpmn:outgoing>
+      </bpmn:scriptTask>
+    </bpmn:subProcess>
+    <bpmn:subProcess id="Content_Enrichment" name="Content Enrichment">
+      <bpmn:incoming>Flow_adapter_out</bpmn:incoming>
+      <bpmn:outgoing>Flow_1rq39js</bpmn:outgoing>
+      <bpmn:startEvent id="Event_0nm10tn">
+        <bpmn:outgoing>Flow_1xsrq63</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:scriptTask id="Investigation_Duration_Builder" name="Investigation Duration Builder">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;  {&#10;    investigation_end:&#10;      (now() - @&#34;1970-01-01T00:00Z&#34;) / @&#34;PT1S&#34; * 1000,&#10;&#10;    investigation_duration:&#10;      string(&#10;        floor(&#10;          (&#10;            ((now() - @&#34;1970-01-01T00:00Z&#34;) / @&#34;PT1S&#34; * 1000)&#10;            - investigation_start&#10;          ) / 1000&#10;        )&#10;      ) + &#34;s&#34;&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_15p7s9m</bpmn:incoming>
+        <bpmn:outgoing>Flow_01jdjde</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Confidence_Calculation" name="Confidence Calculation">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;&#10;/* ================= BASE CONFIDENCE ================= */&#10;&#10;confidence_base:&#10;&#10;  min(&#10;    1,&#10;    max(&#10;      0,&#10;&#10;      /* 🔥 INCIDENT GATE */&#10;      (&#10;        if detect_real_incident_result.is_real_incident != true&#10;        then 0.1&#10;        else incident_object.threat_confidence_raw&#10;      )&#10;&#10;      /* 🔴 DATA EXFILTRATION */&#10;      + (&#10;          if detect_real_incident_result.is_real_incident = true&#10;             and incident_object.threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;          then 0.2&#10;          else 0&#10;        )&#10;&#10;      /* 🔴 TARGETED ACCESS */&#10;      + (&#10;          if detect_real_incident_result.is_real_incident = true&#10;             and incident_object.threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;          then 0.1&#10;          else 0&#10;        )&#10;&#10;      /* 🔴 SYSTEM ANOMALY */&#10;      + (&#10;          if detect_real_incident_result.is_real_incident = true&#10;             and incident_object.threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;          then 0.05&#10;          else 0&#10;        )&#10;&#10;      /* 🟠 PROXY */&#10;      + (&#10;          if detect_real_incident_result.is_real_incident = true&#10;             and incident_object.threat_pattern = &#34;PROXY&#34;&#10;          then 0.05&#10;          else 0&#10;        )&#10;&#10;      /* 🟡 SCANNING REDUCTION */&#10;      - (&#10;          if incident_object.threat_pattern = &#34;SCAN&#34;&#10;          then 0.15&#10;          else 0&#10;        )&#10;&#10;      /* 🔵 LOW SCORE PENALTY */&#10;      - (&#10;          if incident_object.threat_score &#60; 5&#10;          then 0.1&#10;          else 0&#10;        )&#10;    )&#10;  ),&#10;&#10;&#10;/* ================= FINAL VALUES ================= */&#10;&#10;threat_confidence:&#10;&#10;  max(&#10;&#10;    confidence_base,&#10;&#10;    /* 🔥 LLM nur bei echten Incidents */&#10;    if detect_real_incident_result.is_real_incident = true&#10;       and llm_analysis.llm_confidence != null&#10;    then number(llm_analysis.llm_confidence)&#10;&#10;    else 0&#10;  ),&#10;&#10;&#10;threat_confidence_percent:&#10;  floor(confidence_base * 100),&#10;&#10;&#10;confidence_badge_class:&#10;&#10;  if confidence_base &#62;= 0.8&#10;  then &#34;badge-low&#34;&#10;&#10;  else if confidence_base &#62;= 0.5&#10;  then &#34;badge-medium&#34;&#10;&#10;  else &#34;badge-high&#34;&#10;&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1w0atz5</bpmn:incoming>
+        <bpmn:outgoing>Flow_106ngwl</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Calculate_Action" name="Calculate Action">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;&#10;    /* ================= NORMALIZED CONFIDENCE ================= */&#10;&#10;    threat_confidence_safe:&#10;      if incident_object.threat_confidence != null&#10;      then incident_object.threat_confidence&#10;      else 0.5,&#10;&#10;&#10;  /* ================= CALCULATED ACTION ================= */&#10;&#10;calculated_action:&#10;&#10;  /* 🟢 KEIN INCIDENT */&#10;  if detect_real_incident_result.is_real_incident = false&#10;  then &#34;ignore&#34;&#10;&#10;  /* 🟢 LOW */&#10;  else if incident_object.risk_level = &#34;LOW&#34;&#10;  then &#34;monitor&#34;&#10;&#10;  /* 🔴 CRITICAL */&#10;  else if incident_object.risk_level = &#34;CRITICAL&#34;&#10;  then &#34;contain&#34;&#10;&#10;  /* 🔴 HIGH */&#10;  else if incident_object.risk_level = &#34;HIGH&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟠 MEDIUM + HIGH VALUE ASSET */&#10;  else if incident_object.risk_level = &#34;MEDIUM&#34;&#10;       and lower case(incident_object.asset_criticality) = &#34;high&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟠 DATA EXFILTRATION */&#10;  else if incident_object.threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;contain&#34;&#10;&#10;  /* 🟠 TARGETED ACCESS */&#10;  else if incident_object.threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟠 SYSTEM ANOMALY */&#10;  else if incident_object.threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟡 SCAN */&#10;  else if incident_object.threat_pattern = &#34;SCAN&#34;&#10;  then &#34;monitor&#34;&#10;&#10;  /* 🔵 LOW CONFIDENCE */&#10;  else if threat_confidence_safe &#60; 0.5&#10;  then &#34;ignore&#34;&#10;&#10;  /* 🔵 FALLBACK */&#10;  else incident_object.base_action,&#10;&#10;&#10;    /* ================= FINAL ACTION ================= */&#10;&#10;    action:&#10;      calculated_action,&#10;&#10;    action_lower:&#10;      lower case(action),&#10;&#10;    action_priority:&#10;      if action = &#34;contain&#34; then &#34;critical&#34;&#10;      else if action = &#34;investigate&#34; then &#34;high&#34;&#10;      else if action = &#34;monitor&#34; then &#34;medium&#34;&#10;      else &#34;low&#34;,&#10;&#10;    requires_human:&#10;      if action = &#34;contain&#34; then true&#10;      else if threat_confidence_safe &#60; 0.5 then true&#10;      else false,&#10;&#10;&#10;  /* ================= DEBUG ================= */&#10;&#10;debug_base_action:&#10;  base_action,&#10;&#10;&#10;debug_calculated_action:&#10;  calculated_action,&#10;&#10;&#10;debug_final_action:&#10;  action,&#10;&#10;&#10;debug_pattern:&#10;  incident_object.threat_pattern,&#10;&#10;&#10;debug_action_rule:&#10;&#10;  /* 🔴 CRITICAL → CONTAIN */&#10;  if action = &#34;contain&#34;&#10;     and incident_object.risk_level = &#34;CRITICAL&#34;&#10;  then &#34;CRITICAL_CONTAIN&#34;&#10;&#10;  /* 🟠 HIGH → INVESTIGATE */&#10;  else if action = &#34;investigate&#34;&#10;       and incident_object.risk_level = &#34;HIGH&#34;&#10;  then &#34;HIGH_INVESTIGATE&#34;&#10;&#10;  /* 🟡 MEDIUM → MONITOR */&#10;  else if action = &#34;monitor&#34;&#10;       and incident_object.risk_level = &#34;MEDIUM&#34;&#10;  then &#34;MEDIUM_MONITOR&#34;&#10;&#10;  /* 🟢 LOW → IGNORE */&#10;  else if action = &#34;ignore&#34;&#10;       and incident_object.risk_level = &#34;LOW&#34;&#10;  then &#34;LOW_IGNORE&#34;&#10;&#10;  /* 🔶 LOW CONFIDENCE */&#10;  else if threat_confidence_safe &#60; 0.5&#10;  then &#34;CONFIDENCE_DOWNGRADE&#34;&#10;&#10;  /* 🔶 HIGH CONFIDENCE */&#10;  else if threat_confidence_safe &#62;= 0.8&#10;  then &#34;CONFIDENCE_UPGRADE&#34;&#10;&#10;  /* 🔍 ROOT CAUSE */&#10;  else if incident_object.is_gdpr_relevant&#10;  then &#34;GDPR&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;EXFIL&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;TARGETED_ACCESS&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then &#34;SYSTEM&#34;&#10;&#10;  else &#34;FALLBACK&#34;,&#10;&#10;&#10;debug_risk_rule:&#10;&#10;  if incident_object.is_gdpr_relevant&#10;  then &#34;GDPR&#34;&#10;&#10;  else if incident_object.behavior_risk_boost = 2&#10;  then &#34;BEHAVIOR_OVERRIDE&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;EXFIL&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;TARGETED_ACCESS&#34;&#10;&#10;  else if incident_object.threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then &#34;SYSTEM&#34;&#10;&#10;  else if incident_object.impact = &#34;1&#34;&#10;  then &#34;IMPACT_CRITICAL&#34;&#10;&#10;  else &#34;FALLBACK&#34;&#10;&#10;&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_106ngwl</bpmn:incoming>
+        <bpmn:outgoing>Flow_0xiuyw4</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Build_Investigation_Report" name="Build Investigation Report">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;&#10;    investigation_report:&#10;&#10;(&#10;  if ai_extract != null&#10;  then string(ai_extract.iso_report)&#10;  else &#34;Kein ISO Bericht vorhanden&#34;&#10;)&#10;&#10;    +&#10;&#10;    &#34;\n\n---\n&#34;&#10;&#10;    +&#10;&#10;    (&#10;      &#34;\n\n### &#34; + incident_object.report_labels.ai_decision + &#34; ###\n&#34;&#10;      +&#10;      &#34;Decision: &#34; + upper case(&#10;        string(&#10;          if incident_object.action != null&#10;          then incident_object.action&#10;          else &#34;Unknown&#34;&#10;        )&#10;      ) + &#34;\n&#34;&#10;      +&#10;      &#34;Priority: &#34; + upper case(&#10;        string(&#10;          if incident_object.action_priority != null&#10;          then incident_object.action_priority&#10;          else &#34;Unknown&#34;&#10;        )&#10;      ) + &#34;\n&#34;&#10;      +&#10;      &#34;Reason: &#34; +&#10;      (&#10;        if incident_object.llm_explanation_short != null&#10;        then string(incident_object.llm_explanation_short)&#10;        else &#34;No reason provided&#34;&#10;      )&#10;    )&#10;&#10;    +&#10;&#10;    (&#10;    if incident_object.threat_score != null&#10;     and incident_object.threat_score &#62; 0&#10;      then&#10;        &#34;\n\n### &#34; + incident_object.report_labels.threat_intel + &#34; ###\n&#34;&#10;        +&#10;        &#34;Source IP: &#34; + string(incident_object.incident_ip) + &#34;\n&#34;&#10;        +&#10;        &#34;Threat host: &#34; + string(incident_object.threat_host) + &#34;\n&#34;&#10;        +&#10;        &#34;Threat score: &#34; + string(incident_object.threat_score) + &#34;\n&#34;&#10;        +&#10;        &#34;Threat level: &#34; + string(incident_object.threat_level) + &#34;\n&#34;&#10;        +&#10;        &#34;Open ports: &#34;&#10;        +&#10;        (&#10;          if incident_object.threat_ports != null&#10;             and count(incident_object.threat_ports) &#62; 0&#10;          then string join(&#10;            for p in incident_object.threat_ports return string(p),&#10;            &#34;, &#34;&#10;          )&#10;          else &#34;none&#34;&#10;        )&#10;      else &#34;&#34;&#10;    )&#10;&#10;    +&#10;&#10;    (&#10;    if incident_object.asset_visible = true&#10;      then&#10;        &#34;\n\n### &#34; + incident_object.report_labels.asset + &#34; ###\n&#34;&#10;        +&#10;        &#34;System type: &#34; + string(incident_object.asset_type) + &#34;\n&#34;&#10;        +&#10;        &#34;System owner: &#34; + string(incident_object.asset_owner) + &#34;\n&#34;&#10;        +&#10;        &#34;Criticality: &#34; + string(incident_object.asset_criticality_label)&#10;      else &#34;&#34;&#10;    )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0itfbyx</bpmn:incoming>
+        <bpmn:outgoing>Flow_15p7s9m</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_01jdjde" sourceRef="Investigation_Duration_Builder" targetRef="Event_0odbb3h" />
+      <bpmn:sequenceFlow id="Flow_15p7s9m" sourceRef="Build_Investigation_Report" targetRef="Investigation_Duration_Builder" />
+      <bpmn:sequenceFlow id="Flow_106ngwl" sourceRef="Confidence_Calculation" targetRef="Calculate_Action" />
+      <bpmn:sequenceFlow id="Flow_0xiuyw4" sourceRef="Calculate_Action" targetRef="Report_Enrichment" />
+      <bpmn:sequenceFlow id="Flow_1xsrq63" sourceRef="Event_0nm10tn" targetRef="Unified_Incident_Builder" />
+      <bpmn:endEvent id="Event_0odbb3h">
+        <bpmn:incoming>Flow_01jdjde</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_19197k3" sourceRef="Report_Enrichment" targetRef="Activity_1d33b1r" />
+      <bpmn:scriptTask id="Report_Enrichment" name="Report Enrichment">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;  &#10;  {&#10;&#10;    /* ================= RISK ANGLE ================= */&#10;&#10;    risk_needle_angle:&#10;&#10;      max(&#10;        -67.5,&#10;        min(&#10;          67.5,&#10;&#10;          (&#10;            if upper case(trim(incident_object.risk_level)) = &#34;LOW&#34; then -67.5&#10;            else if upper case(trim(incident_object.risk_level)) = &#34;MEDIUM&#34; then -22.5&#10;            else if upper case(trim(incident_object.risk_level)) = &#34;HIGH&#34; then 22.5&#10;            else if upper case(trim(incident_object.risk_level)) = &#34;CRITICAL&#34; then 67.5&#10;            else 0&#10;          )&#10;&#10;          +&#10;&#10;          (&#10;            if upper case(trim(incident_object.risk_level)) = &#34;CRITICAL&#34;&#10;            then 0&#10;            else (random number() * 8) - 4&#10;          )&#10;&#10;        )&#10;      ),&#10;&#10;&#10;    /* ================= ACTION ANGLE ================= */&#10;&#10;    action_needle_angle:&#10;&#10;      max(&#10;        -67.5,&#10;        min(&#10;          67.5,&#10;&#10;          (&#10;            if upper case(trim(incident_object.action)) = &#34;IGNORE&#34; then -67.5&#10;            else if upper case(trim(incident_object.action)) = &#34;MONITOR&#34; then -22.5&#10;            else if upper case(trim(incident_object.action)) = &#34;INVESTIGATE&#34; then 22.5&#10;            else if upper case(trim(incident_object.action)) = &#34;CONTAIN&#34; then 67.5&#10;            else if upper case(trim(incident_object.action)) = &#34;BLOCK&#34; then 67.5&#10;            else 0&#10;          )&#10;&#10;          +&#10;&#10;          (&#10;            if upper case(trim(incident_object.action)) = &#34;CONTAIN&#34;&#10;            then 0&#10;            else (random number() * 8) - 4&#10;          )&#10;&#10;        )&#10;      ),&#10;&#10;&#10;    /* ================= RISK COLOR ================= */&#10;&#10;    risk_color:&#10;&#10;      if upper case(trim(incident_object.risk_level)) = &#34;LOW&#34; then &#34;green&#34;&#10;      else if upper case(trim(incident_object.risk_level)) = &#34;MEDIUM&#34; then &#34;blue&#34;&#10;      else if upper case(trim(incident_object.risk_level)) = &#34;HIGH&#34; then &#34;orange&#34;&#10;      else if upper case(trim(incident_object.risk_level)) = &#34;CRITICAL&#34; then &#34;red&#34;&#10;      else &#34;gray&#34;&#10;&#10;&#10;&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0xiuyw4</bpmn:incoming>
+        <bpmn:outgoing>Flow_19197k3</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Unified_Incident_Builder" name="Unified Incident Builder">
+        <bpmn:extensionElements>
+          <zeebe:script expression="={&#10;&#10;report_labels:&#10;{&#10;  incident_summary: &#34;INCIDENT SUMMARY&#34;,&#10;  threat_intel: &#34;TECHNICAL THREAT INTELLIGENCE&#34;,&#10;  asset: &#34;AFFECTED SYSTEM&#34;,&#10;  gdpr: &#34;GDPR RISK ANALYSIS&#34;,&#10;  human_review: &#34;MANUAL REVIEW&#34;,&#10;  ai_log: &#34;AI DECISION LOG&#34;,&#10;  ai_decision: &#34;AI DECISION&#34;,&#10;  gdpr_aborted: &#34;GDPR REVIEW ABORTED BY REVIEWER&#34;,&#10;  reason: &#34;REASON&#34;,&#10;  decision: &#34;DECISION&#34;,&#10;  ai_recommendation: &#34;AI-RECOMMENDED PRIORITY&#34;,&#10;  final_priority: &#34;FINAL PRIORITY&#34;,&#10;  auditor_comment: &#34;REVIEWER COMMENT&#34;,&#10;  impact: &#34;IMPACT&#34;,&#10;  urgency: &#34;URGENCY&#34;&#10;},&#10;  &#10;report_labels_en:&#10;{&#10;  incident_summary: &#34;INCIDENT SUMMARY&#34;,&#10;  threat_intel: &#34;TECHNICAL THREAT INTELLIGENCE&#34;,&#10;  asset: &#34;AFFECTED SYSTEM&#34;,&#10;  gdpr: &#34;GDPR RISK ANALYSIS&#34;,&#10;  human_review: &#34;HUMAN REVIEW&#34;,&#10;  ai_log: &#34;AI DECISION LOG&#34;,&#10;  ai_decision: &#34;AI DECISION&#34;,&#10;  gdpr_aborted: &#34;GDPR INVESTIGATION ABORTED BY AUDITOR&#34;,&#10;  reason: &#34;Reason&#34;,&#10;  decision: &#34;Decision&#34;,&#10;  ai_recommendation: &#34;AI Recommended Priority&#34;,&#10;  final_priority: &#34;Final Priority&#34;,&#10;  auditor_comment: &#34;Auditor Comment&#34;,&#10;  impact: &#34;Impact&#34;,&#10;  urgency: &#34;Urgency&#34;&#10;},&#10;  &#10;&#10;  &#10;  &#10;action_labels:&#10;{&#10;  contain: &#34;Contain&#34;,&#10;  investigate: &#34;Untersuchen&#34;,&#10;  monitor: &#34;Beobachten&#34;,&#10;  ignore: &#34;Ignorieren&#34;&#10;},&#10;&#10;short_description_long:&#10;  sim_input.incident_topic,&#10;&#10;&#10;&#10;&#10;  &#10;/* ================= SHORT DESCRIPTION specifically for tickets ================= */  &#10;short_description_temp:&#10;  if short_description_raw != null&#10;  then&#10;    if contains(short_description_raw.body.content[1].text, &#34;short_description&#34;)&#10;    then&#10;      substring before(&#10;        substring after(&#10;          short_description_raw.body.content[1].text,&#10;          &#34;: \&#34;&#34;&#10;        ),&#10;        &#34;\&#34;&#34;&#10;      )&#10;    else short_description_raw.body.content[1].text&#10;  else sim_input.incident_topic,&#10;&#10;short_description:&#10;  short_description_temp,&#10;&#10;&#10;&#10;  &#10;/* ================= SHORT EXPLANATION specifically for AI assessment display ================= */  &#10;llm_explanation_temp:&#10;  if llm_explanation_raw != null&#10;  then&#10;    if contains(llm_explanation_raw.body.content[1].text, &#34;llm_explanation&#34;)&#10;    then&#10;      substring before(&#10;        substring after(&#10;          llm_explanation_raw.body.content[1].text,&#10;          &#34;: \&#34;&#34;&#10;        ),&#10;        &#34;\&#34;&#34;&#10;      )&#10;    else llm_explanation_raw.body.content[1].text&#10;  else &#34;No description available&#34;,&#10;&#10;llm_explanation_short:&#10;  llm_explanation_temp,&#10;  &#10;  &#10;topic:&#10;  lower case(&#10;    if sim_input != null and sim_input.incident_topic != null&#10;    then sim_input.incident_topic&#10;    else &#34;&#34;&#10;  ),&#10;&#10;&#10;&#10;  &#10;&#10;/* ---------------- THREAT CATEGORY ---------------- */&#10;&#10;threat_category:&#10;&#10;  if detect_real_incident_result.is_real_incident = false&#10;  then &#34;KEIN VORFALL&#34;&#10;&#10;  else if contains(topic,&#34;datenabfluss&#34;)&#10;       or contains(topic,&#34;sql injection&#34;)&#10;       or contains(topic,&#34;kundendaten&#34;)&#10;       or contains(topic,&#34;personenbezogene daten&#34;)&#10;  then &#34;DATA_BREACH&#34;&#10;&#10;  else if contains(topic,&#34;proxy&#34;)&#10;       or contains(topic,&#34;vpn&#34;)&#10;  then &#34;PROXY&#34;&#10;&#10;  else if contains(topic,&#34;scan&#34;)&#10;  then &#34;SCANNING&#34;&#10;&#10;  else if contains(topic,&#34;cpu&#34;)&#10;       or contains(topic,&#34;prozesse&#34;)&#10;       or contains(topic,&#34;auth-01&#34;)&#10;  then &#34;SYSTEM&#34;&#10;&#10;  else &#34;GENERIC&#34;,&#10;&#10;&#10;is_critical_threat:&#10;&#10;  threat_category = &#34;DATA_BREACH&#34;&#10;  or threat_category = &#34;PROXY&#34;,&#10;&#10;&#10;&#10;&#10;  &#10;  &#10;/* ---------------- GDPR ---------------- */&#10;&#10;gdpr_assessment:&#10;  if gdpr_raw != null&#10;  then gdpr_raw.body.content[1].text&#10;  else null,&#10;&#10;&#10;is_gdpr_relevant:&#10;&#10;  /* 🔥 NUR ECHTE INCIDENTS */&#10;  if detect_real_incident_result.is_real_incident != true&#10;  then false&#10;&#10;  /* 🔴 GDPR-HINWEISE AUS TEST CASESN */&#10;  else if&#10;    contains(topic,&#34;personenbezogene&#34;)&#10;    or contains(topic,&#34;kundendaten&#34;)&#10;    or contains(topic,&#34;kundenprofilen&#34;)&#10;    or contains(topic,&#34;kontaktdaten&#34;)&#10;    or contains(topic,&#34;adresse&#34;)&#10;    or contains(topic,&#34;e-mail&#34;)&#10;    or contains(topic,&#34;datenabfluss&#34;)&#10;  then true&#10;&#10;  /* 🔴 LLM CONFIRMED GDPR */&#10;  else if&#10;    gdpr_raw != null&#10;    and gdpr_assessment != null&#10;    and contains(lower case(gdpr_assessment),&#34;relevanz: ja&#34;)&#10;  then true&#10;&#10;  else false,&#10;&#10;&#10;gdpr_source:&#10;&#10;  if detect_real_incident_result.is_real_incident != true&#10;  then &#34;none&#34;&#10;&#10;  else if&#10;    contains(topic,&#34;personenbezogene&#34;)&#10;    or contains(topic,&#34;kundendaten&#34;)&#10;    or contains(topic,&#34;kundenprofilen&#34;)&#10;    or contains(topic,&#34;kontaktdaten&#34;)&#10;    or contains(topic,&#34;adresse&#34;)&#10;    or contains(topic,&#34;e-mail&#34;)&#10;    or contains(topic,&#34;datenabfluss&#34;)&#10;  then &#34;rule_based&#34;&#10;&#10;  else if&#10;    gdpr_raw != null&#10;    and gdpr_assessment != null&#10;  then &#34;llm_based&#34;&#10;&#10;  else &#34;none&#34;,&#10;&#10;&#10;gdpr_categories:&#10;  if gdpr_assessment != null&#10;  then trim(&#10;         substring before(&#10;           substring after(gdpr_assessment,&#34;KATEGORIE:&#34;),&#10;           &#34;\n&#34;&#10;         )&#10;       )&#10;  else null,&#10;&#10;&#10;gdpr_risk_level:&#10;  if gdpr_assessment != null&#10;  then trim(&#10;         substring before(&#10;           substring after(gdpr_assessment,&#34;RISIKO-ASSESSMENT:&#34;),&#10;           &#34;\n&#34;&#10;         )&#10;       )&#10;  else null,&#10;&#10;&#10;gdpr_measure:&#10;  if gdpr_assessment != null&#10;  then trim(&#10;         substring before(&#10;           substring after(gdpr_assessment,&#34;ACTION:&#34;),&#10;           &#34;\n&#34;&#10;         )&#10;       )&#10;  else null,&#10;&#10;&#10;gdpr_relevance:&#10;  if is_gdpr_relevant then &#34;YES&#34; else &#34;NO&#34;,&#10;&#10;&#10;gdpr_visible:&#10;&#10;  contains(&#10;    string(agent_plan.tools),&#10;    &#34;check_gdpr_relevance&#34;&#10;  ),&#10;  &#10;&#10;&#10;&#10;  &#10;/* ---------------- THREAT CONFIDENCE ---------------- */  &#10;  &#10;threat_confidence_raw:&#10;&#10;  if llm_analysis.llm_confidence != null&#10;  then min(1, max(0, llm_analysis.llm_confidence))&#10;&#10;  else 0.5,&#10;&#10;&#10;&#10;  &#10;&#10;/* ---------------- THREAT INTEL ---------------- */&#10;&#10;threat_score:&#10;&#10;  if threat_intel != null and threat_intel.body != null&#10;  then&#10;    (if threat_intel.body.ports != null then count(threat_intel.body.ports) else 0)&#10;    +&#10;    (if threat_intel.body.tags != null then count(threat_intel.body.tags) * 2 else 0)&#10;  else 0,&#10;  &#10;&#10;&#10;&#10;  &#10;&#10;/* ---------------- THREAT DETAILS ---------------- */&#10;&#10;threat_host:&#10;  if threat_intel != null&#10;     and threat_intel.body != null&#10;     and threat_intel.body.hostnames != null&#10;     and count(threat_intel.body.hostnames) &#62; 0&#10;  then threat_intel.body.hostnames[1]&#10;  else &#34;Unknown&#34;,&#10;&#10;&#10;threat_ports:&#10;  if threat_intel != null&#10;     and threat_intel.body != null&#10;     and threat_intel.body.ports != null&#10;  then threat_intel.body.ports&#10;  else [],&#10;&#10;&#10;threat_ports_string:&#10;  if threat_ports = null or count(threat_ports) = 0&#10;  then &#34;none&#34;&#10;&#10;  else&#10;    string join(&#10;      for p in threat_ports&#10;      return string(p),&#10;      &#34;, &#34;&#10;    ),&#10;&#10;&#10;threat_tags_string:&#10;  if threat_intel != null&#10;     and threat_intel.body != null&#10;     and threat_intel.body.tags != null&#10;     and count(threat_intel.body.tags) &#62; 0&#10;  then string join(threat_intel.body.tags, &#34;, &#34;)&#10;  else &#34;none&#34;,&#10;&#10;&#10;threat_services_string:&#10;  if threat_intel != null&#10;     and threat_intel.body != null&#10;     and threat_intel.body.cpes != null&#10;     and count(threat_intel.body.cpes) &#62; 0&#10;  then string join(&#10;         for c in threat_intel.body.cpes&#10;         return substring after(c, &#34;cpe:/a:&#34;),&#10;         &#34;, &#34;&#10;       )&#10;  else &#34;Unknown&#34;,&#10;&#10;&#10;threat_hostnames_string:&#10;  if threat_intel != null&#10;     and threat_intel.body != null&#10;     and threat_intel.body.hostnames != null&#10;     and count(threat_intel.body.hostnames) &#62; 0&#10;  then string join(threat_intel.body.hostnames, &#34;, &#34;)&#10;  else &#34;none&#34;,&#10;&#10;&#10;/* 🔥 TEST CASES NUTZEN KEINE DNS-/TRUSTED-INFRA-LOGIK */&#10;&#10;is_known_dns:&#10;  false,&#10;&#10;&#10;is_trusted_infrastructure:&#10;  false,&#10;&#10;&#10;  &#10;&#10;  &#10;&#10;/* ================= THREAT ROLE ================= */&#10;&#10;threat_role:&#10;&#10;  /* 🔴 1. Threat AI */&#10;  if threat_ai_analysis != null&#10;     and threat_ai_analysis.threat_role != null&#10;     and threat_ai_analysis.threat_role != &#34;&#34;&#10;  then upper case(threat_ai_analysis.threat_role)&#10;&#10;  /* 🔴 2. Bestehender Wert */&#10;  else if threat_role != null&#10;       and threat_role != &#34;&#34;&#10;       and threat_role != &#34;UNKNOWN&#34;&#10;       and threat_role != &#34;Unknown&#34;&#10;  then threat_role&#10;&#10;  /* 🔴 3. Testfallbasierte Threat-Erkennung */&#10;  else if contains(topic,&#34;datenabfluss&#34;)&#10;       or contains(topic,&#34;sql injection&#34;)&#10;       or contains(topic,&#34;kundendaten&#34;)&#10;  then &#34;DATA_EXFILTRATION&#34;&#10;&#10;  else if contains(topic,&#34;proxy&#34;)&#10;       or contains(topic,&#34;vpn&#34;)&#10;  then &#34;PROXY&#34;&#10;&#10;  else if contains(topic,&#34;scan&#34;)&#10;  then &#34;SCANNER&#34;&#10;&#10;  else if contains(topic,&#34;cpu&#34;)&#10;       or contains(topic,&#34;prozesse&#34;)&#10;       or contains(topic,&#34;auth-01&#34;)&#10;  then &#34;SYSTEM&#34;&#10;&#10;  else &#34;UNKNOWN&#34;,&#10;&#10;&#10;  &#10;&#10;&#10;/* ================= INFRASTRUCTURE ================= */&#10;&#10;infrastructure_type:&#10;&#10;  /* 🔴 1. Threat AI */&#10;  if threat_ai_analysis != null&#10;     and threat_ai_analysis.ai_infrastructure_type != null&#10;     and threat_ai_analysis.ai_infrastructure_type != &#34;&#34;&#10;  then upper case(threat_ai_analysis.ai_infrastructure_type)&#10;&#10;  /* 🔴 2. Bestehenden Wert behalten */&#10;  else if infrastructure_type != null&#10;       and infrastructure_type != &#34;&#34;&#10;       and infrastructure_type != &#34;UNKNOWN&#34;&#10;       and infrastructure_type != &#34;Unknown&#34;&#10;  then infrastructure_type&#10;&#10;  /* 🔴 3. Testfallbasierte Infrastruktur */&#10;  else if contains(topic,&#34;proxy&#34;)&#10;       or contains(topic,&#34;vpn&#34;)&#10;  then &#34;PUBLIC_SERVER&#34;&#10;&#10;  else if contains(topic,&#34;scan&#34;)&#10;  then &#34;SCANNING_INFRA&#34;&#10;&#10;  else if contains(topic,&#34;datenabfluss&#34;)&#10;       or contains(topic,&#34;sql injection&#34;)&#10;  then &#34;DATA_CHANNEL&#34;&#10;&#10;  else &#34;UNKNOWN&#34;,&#10;&#10;&#10;  &#10;&#10;&#10;&#10;/* ---------------- THREAT PATTERN ---------------- */&#10;&#10;threat_pattern:&#10;&#10;/* 🟢 KEIN INCIDENT */&#10;if detect_real_incident_result.is_real_incident = false&#10;then &#34;LEGITIME ACTIVITY&#34;&#10;&#10;/* 🔴 DATA EXFILTRATION */&#10;else if contains(topic,&#34;datenabfluss&#34;)&#10;     or contains(topic,&#34;sql injection&#34;)&#10;     or contains(topic,&#34;kundendaten&#34;)&#10;then &#34;DATA_EXFILTRATION&#34;&#10;&#10;/* 🔴 SYSTEM ANOMALY */&#10;else if contains(topic,&#34;cpu&#34;)&#10;     or contains(topic,&#34;prozess&#34;)&#10;     or contains(topic,&#34;prozesse&#34;)&#10;     or contains(topic,&#34;auth-01&#34;)&#10;then &#34;SYSTEM_ANOMALY&#34;&#10;&#10;/* 🔴 VPN / PROXY */&#10;else if contains(topic,&#34;vpn&#34;)&#10;     or contains(topic,&#34;proxy&#34;)&#10;then &#34;PROXY&#34;&#10;&#10;/* 🔴 SCANNING */&#10;else if contains(topic,&#34;scan&#34;)&#10;then &#34;SCAN&#34;&#10;&#10;/* 🟠 TARGETED ACCESS */&#10;else if contains(topic,&#34;104.200.20.46&#34;)&#10;then &#34;TARGETED_ACCESS&#34;&#10;&#10;/* 🟡 FALLBACK */&#10;else &#34;GENERIC&#34;,&#10;&#10;&#10;  &#10;&#10;&#10;&#10;&#10;/* ---------------- LLM SANITIZATION ---------------- */&#10;&#10;sanitized_attack_stage:&#10;&#10;  if detect_real_incident_result.is_real_incident = false&#10;  then &#34;none&#34;&#10;&#10;  else if threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;exfiltration&#34;&#10;&#10;  else if threat_pattern = &#34;PROXY&#34;&#10;  then &#34;initial_access&#34;&#10;&#10;  else if threat_pattern = &#34;SCAN&#34;&#10;  then &#34;reconnaissance&#34;&#10;&#10;  else if threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then &#34;execution&#34;&#10;&#10;  else &#34;unknown&#34;,&#10;&#10;&#10;&#10;  &#10;&#10;&#10;/* ---------------- IMPACT / URGENCY ---------------- */&#10;&#10;impact:&#10;&#10;  if is_gdpr_relevant&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;PROXY&#34;&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;SCAN&#34;&#10;  then &#34;2&#34;&#10;&#10;  else &#34;3&#34;,&#10;&#10;&#10;impact_label:&#10;&#10;  if impact = &#34;1&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  else if impact = &#34;2&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;impact_badge_class:&#10;&#10;  if impact = &#34;1&#34;&#10;  then &#34;badge-high&#34;&#10;&#10;  else if impact = &#34;2&#34;&#10;  then &#34;badge-medium&#34;&#10;&#10;  else &#34;badge-low&#34;,&#10;&#10;&#10;urgency:&#10;&#10;  if is_gdpr_relevant&#10;  then &#34;1&#34;&#10;&#10;  else if risk_level = &#34;HIGH&#34;&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;1&#34;&#10;&#10;  else if threat_pattern = &#34;SCAN&#34;&#10;  then &#34;2&#34;&#10;&#10;  else &#34;3&#34;,&#10;&#10;&#10;urgency_label:&#10;&#10;  if urgency = &#34;1&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  else if urgency = &#34;2&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;urgency_badge_class:&#10;&#10;  if urgency = &#34;1&#34;&#10;  then &#34;badge-high&#34;&#10;&#10;  else if urgency = &#34;2&#34;&#10;  then &#34;badge-medium&#34;&#10;&#10;  else &#34;badge-low&#34;,&#10;&#10;&#10;&#10;  &#10;  &#10;&#10;/* ================== ASSET ================== */&#10;&#10;/* 🔥 ASSET BRIDGE (NORMALIZATION) */&#10;&#10;asset_name:&#10;&#10;  /* 🔴 1. LOOKUP */&#10;  if asset_result != null&#10;     and asset_result.asset_name != null&#10;     and asset_result.asset_name != &#34;&#34;&#10;  then asset_result.asset_name&#10;&#10;  /* 🔴 2. AI EXTRACTOR */&#10;  else if asset_detection != null&#10;       and asset_detection.asset_hint != null&#10;       and asset_detection.asset_hint != &#34;&#34;&#10;  then asset_detection.asset_hint&#10;&#10;  /* 🔴 3. TESTFALL-FALLBACKS */&#10;  else if contains(topic,&#34;AUTH-01&#34;)&#10;  then &#34;AUTH-01&#34;&#10;&#10;  else if contains(topic,&#34;CRM-PROD-02&#34;)&#10;  then &#34;CRM-PROD-02&#34;&#10;&#10;  else if contains(topic,&#34;DB-PROD-02&#34;)&#10;  then &#34;DB-PROD-02&#34;&#10;&#10;  /* 🟡 4. FINAL */&#10;  else null,&#10;&#10;&#10;asset_type:&#10;&#10;  /* 🔴 1. TESTFALL-ASSETS */&#10;  if contains(topic,&#34;AUTH-01&#34;)&#10;     or contains(topic,&#34;CRM-PROD-02&#34;)&#10;     or contains(topic,&#34;DB-PROD-02&#34;)&#10;     or contains(topic,&#34;server&#34;)&#10;     or contains(topic,&#34;system&#34;)&#10;  then &#34;Internal&#34;&#10;&#10;  /* 🔴 2. LOOKUP */&#10;  else if asset_result != null&#10;       and asset_result.asset_type != null&#10;       and asset_result.asset_type != &#34;&#34;&#10;       and lower case(asset_result.asset_type) != &#34;unbekannt&#34;&#10;  then asset_result.asset_type&#10;&#10;  /* 🔴 3. FALLBACK */&#10;  else if asset_name != null&#10;  then &#34;Internal&#34;&#10;&#10;  /* 🟡 4. FINAL */&#10;  else &#34;Unknown&#34;,&#10;&#10;&#10;asset_type_badge_class:&#10;&#10;  if lower case(asset_type) = &#34;internal&#34;&#10;  then &#34;badge-low&#34;&#10;&#10;  else if lower case(asset_type) = &#34;external&#34;&#10;  then &#34;badge-info&#34;&#10;&#10;  else &#34;badge-secondary&#34;,&#10;&#10;&#10;  &#10;  &#10;&#10;&#10;&#10;/* ---------------- BEHAVIOR OVERRIDE ---------------- */&#10;&#10;behavior_risk_boost:&#10;&#10;  if detect_real_incident_result.is_real_incident = true&#10;     and lower case(asset_type) = &#34;internal&#34;&#10;     and threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then 2&#10;&#10;  else if detect_real_incident_result.is_real_incident = true&#10;       and threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then 1&#10;&#10;  else if detect_real_incident_result.is_real_incident = true&#10;       and threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then 1&#10;&#10;  else 0,&#10;&#10;&#10;/* 🔥 EFFECTIVE RISK DRIVER */&#10;&#10;effective_risk_driver:&#10;&#10;  if behavior_risk_boost = 2&#10;  then &#34;BEHAVIOR_DOMINANT&#34;&#10;&#10;  else if behavior_risk_boost = 1&#10;  then &#34;BALANCED&#34;&#10;&#10;  else &#34;ASSET_DOMINANT&#34;,&#10;&#10;&#10;  &#10;  &#10;  &#10;&#10;&#10;/* ---------------- OWNER ---------------- */&#10;&#10;asset_owner:&#10;&#10;  /* 🔴 1. LOOKUP */&#10;  if asset_result != null&#10;     and asset_result.asset_owner != null&#10;     and asset_result.asset_owner != &#34;&#34;&#10;     and lower case(asset_result.asset_owner) != &#34;unbekannt&#34;&#10;  then asset_result.asset_owner&#10;&#10;  /* 🔴 2. TESTFALL-FALLBACK */&#10;  else if asset_name != null&#10;  then&#10;    if starts with(asset_name, &#34;DB-&#34;)&#10;    then &#34;Database Operations&#34;&#10;&#10;    else if starts with(asset_name, &#34;AUTH-&#34;)&#10;    then &#34;Identity Services&#34;&#10;&#10;    else if starts with(asset_name, &#34;CRM-&#34;)&#10;    then &#34;CRM Operations&#34;&#10;&#10;    else &#34;Internal IT&#34;&#10;&#10;  /* 🟡 3. FINAL */&#10;  else &#34;Unknown&#34;,&#10;&#10;&#10;asset_owner_badge_class:&#10;&#10;  if asset_owner = &#34;Unknown&#34;&#10;  then &#34;badge-secondary&#34;&#10;&#10;  else &#34;badge-info&#34;,&#10;&#10;&#10;  &#10;&#10;&#10;/* ---------------- CRITICALITY ---------------- */&#10;&#10;asset_criticality:&#10;&#10;  /* 🔴 1. LOOKUP */&#10;  if asset_result != null&#10;     and asset_result.asset_criticality != null&#10;     and asset_result.asset_criticality != &#34;&#34;&#10;     and lower case(asset_result.asset_criticality) != &#34;unknown&#34;&#10;  then lower case(asset_result.asset_criticality)&#10;&#10;  /* 🔴 2. TESTFALL-FALLBACK */&#10;  else if asset_name != null&#10;  then&#10;    if starts with(asset_name, &#34;DB-&#34;)&#10;    then &#34;high&#34;&#10;&#10;    else if starts with(asset_name, &#34;AUTH-&#34;)&#10;    then &#34;high&#34;&#10;&#10;    else if starts with(asset_name, &#34;CRM-&#34;)&#10;    then &#34;high&#34;&#10;&#10;    else &#34;low&#34;&#10;&#10;  /* 🟡 3. FINAL */&#10;  else &#34;low&#34;,&#10;&#10;&#10;asset_criticality_label:&#10;  upper case(asset_criticality),&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;/* ---------------- VISIBILITY ---------------- */&#10;&#10;asset_visible:&#10;&#10;contains(&#10;  string(agent_plan.tools),&#10;  &#34;asset_lookup&#34;&#10;),&#10;&#10;&#10;&#10;  &#10;&#10;&#10;&#10;/* ---------------- THREAT LEVEL ---------------- */&#10;&#10;threat_level:&#10;&#10;  if is_gdpr_relevant&#10;  then &#34;CRITICAL&#34;&#10;&#10;  else if threat_category = &#34;DATA_BREACH&#34;&#10;  then &#34;CRITICAL&#34;&#10;&#10;  else if threat_category = &#34;PROXY&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  else if threat_category = &#34;SCANNING&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else if threat_category = &#34;SYSTEM&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;severity_badge_class:&#10;&#10;  if threat_level = &#34;CRITICAL&#34;&#10;  then &#34;badge-critical&#34;&#10;&#10;  else if threat_level = &#34;HIGH&#34;&#10;  then &#34;badge-high&#34;&#10;&#10;  else if threat_level = &#34;MEDIUM&#34;&#10;  then &#34;badge-medium&#34;&#10;&#10;  else &#34;badge-low&#34;,&#10;&#10;&#10;&#10;  &#10;&#10;  &#10;&#10;/* ---------------- RISK SCORE ---------------- */&#10;&#10;risk_score:&#10;&#10;  (&#10;    if lower case(asset_criticality) = &#34;high&#34;&#10;       and threat_level = &#34;CRITICAL&#34;&#10;    then 60&#10;&#10;    else if lower case(asset_criticality) = &#34;high&#34;&#10;         and threat_level = &#34;HIGH&#34;&#10;    then 50&#10;&#10;    else if threat_level = &#34;MEDIUM&#34;&#10;    then 40&#10;&#10;    else 25&#10;  )&#10;&#10;  + (if is_gdpr_relevant then 30 else 0)&#10;&#10;  + (&#10;      if threat_category = &#34;DATA_BREACH&#34;&#10;      then 25&#10;      else 0&#10;    )&#10;&#10;  + (&#10;      if threat_category = &#34;PROXY&#34;&#10;      then 15&#10;      else 0&#10;    )&#10;&#10;  + (&#10;      if threat_category = &#34;SCANNING&#34;&#10;      then 10&#10;      else 0&#10;    )&#10;&#10;  + (&#10;      if contains(topic,&#34;mehrere verbindungen&#34;)&#10;      then 10&#10;      else 0&#10;    ),&#10;&#10;&#10;risk_score_capped:&#10;  min(100, risk_score),&#10;  &#10;  &#10;/* ---------------- INCIDENT IP ---------------- */&#10;&#10;incident_ip:&#10;&#10;  if incident_ip != null &#10;     and incident_ip != &#34;&#34;&#10;     and incident_ip != &#34;Unknown&#34;&#10;  then incident_ip&#10;&#10;  else if threat_intel != null &#10;       and threat_intel.ip != null&#10;       and threat_intel.ip != &#34;&#34;&#10;  then threat_intel.ip&#10;&#10;  else &#34;Unknown&#34;,&#10;&#10;/* ---------------- UNKNOWN SOURCE FLAG ---------------- */&#10;&#10;has_unknown_source:&#10;&#10;  incident_ip = &#34;Unknown&#34;&#10;  or threat_host = &#34;Unknown&#34;,  &#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;&#10;/* ======================= FINAL RISK LEVEL with GROUPING ======================= */&#10;&#10;&#10;/* ------------------- GROUPING START ------------------- */&#10;&#10;attack_severity_group:&#10;&#10;  /* 🔴 DATA EXFILTRATION */&#10;  if threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;     or threat_category = &#34;DATA_BREACH&#34;&#10;  then &#34;CRITICAL&#34;&#10;&#10;  /* 🔴 SYSTEM ANOMALY */&#10;  else if threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;       and impact = &#34;1&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  /* 🔴 TARGETED ACCESS */&#10;  else if threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  /* 🔴 PROXY */&#10;  else if threat_pattern = &#34;PROXY&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  /* 🟠 SCANNING */&#10;  else if threat_pattern = &#34;SCAN&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;threat_severity_group:&#10;&#10;  if threat_category = &#34;DATA_BREACH&#34;&#10;  then &#34;CRITICAL&#34;&#10;&#10;  else if threat_category = &#34;PROXY&#34;&#10;       or threat_category = &#34;SYSTEM&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  else if threat_category = &#34;SCANNING&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;/* ------------------- GROUPING END ------------------- */&#10;&#10;&#10;&#10;&#10;risk_level:&#10;&#10;  /* 🔥 BEHAVIOR OVERRIDE */&#10;  if behavior_risk_boost = 2&#10;  then &#34;CRITICAL&#34;&#10;&#10;  /* 🟢 KEIN ECHTER INCIDENT */&#10;  else if detect_real_incident_result.is_real_incident = false&#10;  then &#34;LOW&#34;&#10;&#10;  /* 🔴 GDPR + DATA BREACH */&#10;  else if is_gdpr_relevant&#10;       and (&#10;         threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;         or threat_category = &#34;DATA_BREACH&#34;&#10;       )&#10;  then &#34;CRITICAL&#34;&#10;&#10;  /* 🔴 GDPR */&#10;  else if is_gdpr_relevant&#10;  then &#34;HIGH&#34;&#10;&#10;  /* 🔴 DATA BREACH */&#10;  else if attack_severity_group = &#34;CRITICAL&#34;&#10;       or threat_severity_group = &#34;CRITICAL&#34;&#10;  then &#34;CRITICAL&#34;&#10;&#10;  /* 🔴 HIGH */&#10;  else if attack_severity_group = &#34;HIGH&#34;&#10;       or threat_severity_group = &#34;HIGH&#34;&#10;  then &#34;HIGH&#34;&#10;&#10;  /* 🟠 MEDIUM */&#10;  else if attack_severity_group = &#34;MEDIUM&#34;&#10;       or threat_severity_group = &#34;MEDIUM&#34;&#10;  then &#34;MEDIUM&#34;&#10;&#10;  /* 🔵 SCORE FALLBACK */&#10;  else if risk_score_capped &#62;= 70&#10;  then &#34;HIGH&#34;&#10;&#10;  else if risk_score_capped &#62;= 40&#10;  then &#34;MEDIUM&#34;&#10;&#10;  else &#34;LOW&#34;,&#10;&#10;&#10;risk_level_lower:&#10;  lower case(risk_level),&#10;&#10;&#10;/* 🔥 RISK ORIGIN */&#10;&#10;risk_origin:&#10;&#10;  if behavior_risk_boost = 2&#10;  then &#34;BEHAVIOR_OVERRIDE&#34;&#10;&#10;  else if is_gdpr_relevant&#10;  then &#34;GDPR&#34;&#10;&#10;  else if attack_severity_group = &#34;CRITICAL&#34;&#10;       or attack_severity_group = &#34;HIGH&#34;&#10;       or threat_severity_group = &#34;CRITICAL&#34;&#10;       or threat_severity_group = &#34;HIGH&#34;&#10;  then &#34;ATTACK_SEVERITY&#34;&#10;&#10;  else &#34;STANDARD&#34;,&#10;&#10;  &#10;&#10;/* ---------------- UI LEVEL (NEU SAUBER) ---------------- */&#10;&#10;/* 👉 DAS IST JETZT DER ANZEIGE-WERT */&#10;display_risk:&#10;  risk_level,&#10;&#10;display_risk_lower:&#10;  lower case(display_risk),&#10;&#10;&#10;/* 🔥 BADGE JETZT AUF RISK LEVEL */&#10;severity_badge_class:&#10;&#10;  if risk_level = &#34;CRITICAL&#34; then &#34;badge-critical&#34;&#10;  else if risk_level = &#34;HIGH&#34; then &#34;badge-high&#34;&#10;  else if risk_level = &#34;MEDIUM&#34; then &#34;badge-medium&#34;&#10;  else &#34;badge-low&#34;,&#10;&#10;  &#10;&#10;&#10;  &#10;&#10;  &#10;/* ---------------- FINAL ACTION ---------------- */&#10;&#10;base_action:&#10;&#10;  /* 🟢 KEIN INCIDENT */&#10;  if detect_real_incident_result.is_real_incident = false&#10;  then &#34;ignore&#34;&#10;&#10;  /* 🔴 GDPR */&#10;  else if is_gdpr_relevant&#10;  then &#34;contain&#34;&#10;&#10;  /* 🔴 DATA EXFILTRATION */&#10;  else if threat_pattern = &#34;DATA_EXFILTRATION&#34;&#10;  then &#34;contain&#34;&#10;&#10;  /* 🔴 TARGETED ACCESS */&#10;  else if threat_pattern = &#34;TARGETED_ACCESS&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🔴 SYSTEM ANOMALY */&#10;  else if threat_pattern = &#34;SYSTEM_ANOMALY&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟠 PROXY */&#10;  else if threat_pattern = &#34;PROXY&#34;&#10;  then &#34;investigate&#34;&#10;&#10;  /* 🟡 SCANNING */&#10;  else if threat_pattern = &#34;SCAN&#34;&#10;  then &#34;monitor&#34;&#10;&#10;  /* 🔵 FALLBACK */&#10;  else &#34;investigate&#34;&#10;&#10;  &#10;&#10; &#10;}" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1xsrq63</bpmn:incoming>
+        <bpmn:outgoing>Flow_1w0atz5</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="Activity_07u2cg9" name="ISO Compliance Enrichment">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;&#10;    /* ========================================================= */&#10;    /* ISO CONTROLS RENDERED                                     */&#10;    /* ========================================================= */&#10;&#10;    iso_controls:&#10;&#10;      for c in (if iso_controls != null then iso_controls else []) return {&#10;&#10;        text:&#10;          c.text,&#10;&#10;        status:&#10;          c.status,&#10;&#10;        rendered:&#10;&#10;          c.text + &#34;  [&#34; +&#10;&#10;          (&#10;            if c.status = &#34;ERFUELLT&#34;&#10;            then &#34;NICHT BETROFFEN&#34;&#10;&#10;            else if c.status = &#34;TEILWEISE BETROFFEN&#34;&#10;            then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;            else &#34;ZU REVIEW&#34;&#10;          )&#10;&#10;          + &#34;]&#34;&#10;      },&#10;&#10;&#10;&#10;    /* ========================================================= */&#10;    /* ISO MAPPING TEXT                                          */&#10;    /* ========================================================= */&#10;&#10;    iso_mapping_rendered:&#10;&#10;      string join(&#10;&#10;        for c in (if iso_controls != null then iso_controls else []) return&#10;&#10;          c.text + &#34;  [&#34; +&#10;&#10;          (&#10;            if c.status = &#34;ERFUELLT&#34;&#10;            then &#34;NICHT BETROFFEN&#34;&#10;&#10;            else if c.status = &#34;TEILWEISE BETROFFEN&#34;&#10;            then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;            else &#34;ZU REVIEW&#34;&#10;          )&#10;&#10;          + &#34;]&#34;,&#10;&#10;        &#34;\n&#34;&#10;      ),&#10;&#10;    iso_control_count:&#10;&#10;      count(&#10;        if iso_controls != null&#10;        then iso_controls&#10;        else []&#10;      ),&#10;&#10;&#10;&#10;    /* ========================================================= */&#10;    /* UI LABELS                                                 */&#10;    /* ========================================================= */&#10;&#10;    risk_label:&#10;&#10;      if incident_object.risk_level = null&#10;      then null&#10;&#10;      else upper case(&#10;&#10;        if upper case(incident_object.risk_level) = &#34;CRITICAL&#34;&#10;        then &#34;CRITICAL&#34;&#10;&#10;        else if upper case(incident_object.risk_level) = &#34;HIGH&#34;&#10;        then &#34;HIGH&#34;&#10;&#10;        else if upper case(incident_object.risk_level) = &#34;MEDIUM&#34;&#10;        then &#34;MEDIUM&#34;&#10;&#10;        else if upper case(incident_object.risk_level) = &#34;LOW&#34;&#10;        then &#34;LOW&#34;&#10;&#10;        else incident_object.risk_level&#10;      ),&#10;&#10;&#10;&#10;    action_label:&#10;&#10;      if incident_object.action = null&#10;      then null&#10;&#10;      else upper case(&#10;&#10;        if upper case(incident_object.action) = &#34;CONTAIN&#34;&#10;        then &#34;CONTAIN&#34;&#10;&#10;        else if upper case(incident_object.action) = &#34;INVESTIGATE&#34;&#10;        then &#34;UNTERSUCHEN&#34;&#10;&#10;        else if upper case(incident_object.action) = &#34;MONITOR&#34;&#10;        then &#34;MONITOR&#34;&#10;&#10;        else if upper case(incident_object.action) = &#34;IGNORE&#34;&#10;        then &#34;IGNORIEREN&#34;&#10;&#10;        else if upper case(incident_object.action) = &#34;ESCALATE&#34;&#10;        then &#34;ESKALIEREN&#34;&#10;&#10;        else upper case(incident_object.action)&#10;      ),&#10;&#10;&#10;&#10;    action_priority_label:&#10;&#10;      if incident_object.action_priority = null&#10;      then null&#10;&#10;      else upper case(&#10;&#10;        if upper case(incident_object.action_priority) = &#34;CRITICAL&#34;&#10;        then &#34;CRITICAL&#34;&#10;&#10;        else if upper case(incident_object.action_priority) = &#34;HIGH&#34;&#10;        then &#34;HIGH&#34;&#10;&#10;        else if upper case(incident_object.action_priority) = &#34;MEDIUM&#34;&#10;        then &#34;MEDIUM&#34;&#10;&#10;        else if upper case(incident_object.action_priority) = &#34;LOW&#34;&#10;        then &#34;LOW&#34;&#10;&#10;        else incident_object.action_priority&#10;      )&#10;&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1rkls3u</bpmn:incoming>
+        <bpmn:outgoing>Flow_0itfbyx</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_0itfbyx" sourceRef="Activity_07u2cg9" targetRef="Build_Investigation_Report" />
+      <bpmn:scriptTask id="Activity_1d33b1r" name="Evaluate ISO Controls">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=for c in&#10;  (&#10;    if not(&#10;      some x in&#10;        (&#10;          if not(&#10;            some y in iso_controls satisfies starts with(y.text, &#34;A.16.&#34;)&#10;          )&#10;          then append(&#10;            iso_controls,&#10;            {&#10;              text: &#34;A.16.X Behandlung von security incidents&#34;&#10;            }&#10;          )&#10;          else iso_controls&#10;        )&#10;      satisfies starts with(x.text, &#34;A.18.&#34;)&#10;    )&#10;    then append(&#10;      (&#10;        if not(&#10;          some y in iso_controls satisfies starts with(y.text, &#34;A.16.&#34;)&#10;        )&#10;        then append(&#10;          iso_controls,&#10;          {&#10;            text: &#34;A.16.X Behandlung von security incidents&#34;&#10;          }&#10;        )&#10;        else iso_controls&#10;      ),&#10;      {&#10;        text: &#34;A.18.X Compliance und Datenschutz&#34;&#10;      }&#10;    )&#10;    else&#10;      (&#10;        if not(&#10;          some y in iso_controls satisfies starts with(y.text, &#34;A.16.&#34;)&#10;        )&#10;        then append(&#10;          iso_controls,&#10;          {&#10;            text: &#34;A.16.X Behandlung von security incidents&#34;&#10;          }&#10;        )&#10;        else iso_controls&#10;      )&#10;  )&#10;return {&#10;&#10;  text: c.text,&#10;&#10;  status:&#10;&#10;/* ================= RECONNAISSANCE ================= */&#10;&#10;if incident_object.sanitized_attack_stage != null&#10;   and (&#10;     contains(lower case(incident_object.sanitized_attack_stage), &#34;recon&#34;)&#10;     or contains(lower case(incident_object.sanitized_attack_stage), &#34;scan&#34;)&#10;   )&#10;then&#10;  if starts with(c.text, &#34;A.12.&#34;)&#10;  then &#34;ERFUELLT&#34;&#10;&#10;  else if starts with(c.text, &#34;A.13.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;&#10;/* ================= INITIAL ACCESS ================= */&#10;&#10;else if incident_object.sanitized_attack_stage != null&#10;   and (&#10;     contains(lower case(incident_object.sanitized_attack_stage), &#34;initial&#34;)&#10;     or contains(lower case(incident_object.sanitized_attack_stage), &#34;access&#34;)&#10;   )&#10;then&#10;  if starts with(c.text, &#34;A.9.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else if starts with(c.text, &#34;A.8.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;&#10;/* ================= EXECUTION ================= */&#10;&#10;else if incident_object.sanitized_attack_stage != null&#10;   and (&#10;     contains(lower case(incident_object.sanitized_attack_stage), &#34;execution&#34;)&#10;     or contains(lower case(incident_object.sanitized_attack_stage), &#34;execute&#34;)&#10;   )&#10;then&#10;  if starts with(c.text, &#34;A.14.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else if starts with(c.text, &#34;A.12.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;&#10;/* ================= EXFILTRATION ================= */&#10;&#10;else if incident_object.sanitized_attack_stage != null&#10;   and contains(lower case(incident_object.sanitized_attack_stage), &#34;exfil&#34;)&#10;then&#10;  if starts with(c.text, &#34;A.12.&#34;)&#10;  then &#34;ERFUELLT&#34;&#10;&#10;  else if starts with(c.text, &#34;A.18.&#34;)&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else &#34;NICHT&#34;&#10;&#10;&#10;/* ================= FALLBACK ================= */&#10;&#10;else if starts with(c.text, &#34;A.18.&#34;)&#10;then&#10;  if incident_object.gdpr_relevance = &#34;YES&#34;&#10;  then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;  else &#34;ERFUELLT&#34;&#10;&#10;else &#34;TEILWEISE BETROFFEN&#34;&#10;}" resultVariable="iso_controls" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_19197k3</bpmn:incoming>
+        <bpmn:outgoing>Flow_1rkls3u</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_1rkls3u" sourceRef="Activity_1d33b1r" targetRef="Activity_07u2cg9" />
+      <bpmn:sequenceFlow id="Flow_1w0atz5" sourceRef="Unified_Incident_Builder" targetRef="Confidence_Calculation" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_1rq39js" sourceRef="Content_Enrichment" targetRef="ISMS_Incident_Review" />
+    <bpmn:endEvent id="Event_1pu30zs" name="Prozess Ende">
+      <bpmn:incoming>Flow_0ljujq2</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="Audit_Report" name="ISMS Audit Report">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="Incident_Report" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1eiz0y2</bpmn:incoming>
+      <bpmn:outgoing>Flow_0ljujq2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:sequenceFlow id="Flow_1eiz0y2" sourceRef="Create_Audit_Sections" targetRef="Audit_Report" />
+    <bpmn:scriptTask id="Create_Audit_Sections" name="Create Audit Sections">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=put all(&#10;&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;&#10;    /* ================= COLOR BADGES ====================== */&#10;&#10;	risk_badge_class:&#10;&#10;	  if incident_object.risk_level = &#34;LOW&#34;&#10;	  then &#34;badge-green&#34;&#10;&#10;	  else if incident_object.risk_level = &#34;MEDIUM&#34;&#10;	  then &#34;badge-blue&#34;&#10;&#10;	  else if incident_object.risk_level = &#34;HIGH&#34;&#10;	  then &#34;badge-orange&#34;&#10;&#10;	  else if incident_object.risk_level = &#34;CRITICAL&#34;&#10;	  then &#34;badge-red&#34;&#10;&#10;	  else &#34;badge-secondary&#34;,&#10;&#10;&#10;	action_badge_class:&#10;&#10;	  if incident_object.action = &#34;monitor&#34;&#10;	  then &#34;badge-blue&#34;&#10;&#10;	  else if incident_object.action = &#34;investigate&#34;&#10;	  then &#34;badge-orange&#34;&#10;&#10;	  else if incident_object.action = &#34;contain&#34;&#10;	  then &#34;badge-red&#34;&#10;&#10;	  else if incident_object.action = &#34;ignore&#34;&#10;	  then &#34;badge-grey&#34;&#10;&#10;	  else &#34;badge-secondary&#34;,&#10;&#10;	/* ================= GDPR BADGE ====================== */&#10;&#10;	gdpr_badge_class:&#10;&#10;	  if incident_object.is_gdpr_relevant = true&#10;	  then &#34;badge-red&#34;&#10;&#10;	  else if incident_object.dsgvo_skipped = true&#10;	  then &#34;badge-green&#34;&#10;&#10;	  else &#34;badge-gray&#34;,&#10;    &#10;    /* ================= EXECUTIVE SUMMARY ================= */&#10;&#10;    executive_summary:&#10;&#10;      &#34;Decision: &#34; + upper case(&#10;        string(&#10;          if incident_object.action_label != null&#10;          then incident_object.action_label&#10;          else &#34;Unknown&#34;&#10;        )&#10;      ) + &#34;\n&#34;&#10;      +&#10;      &#34;Priority: &#34; + upper case(&#10;        string(&#10;          if incident_object.action_priority_label != null&#10;          then incident_object.action_priority_label&#10;          else &#34;Unknown&#34;&#10;        )&#10;      ) + &#34;\n&#34;&#10;      +&#10;      &#34;Reason: &#34; +&#10;      (&#10;        if incident_object.llm_explanation_short != null&#10;        then string(incident_object.llm_explanation_short)&#10;        else &#34;No reason provided&#34;&#10;      ),&#10;&#10;&#10;    /* ================= TECHNICAL CONTEXT ================= */&#10;&#10;	technical_context:&#10;&#10;	(&#10;	  /* ================= ENRICHED THREAT ================= */&#10;&#10;	  if incident_object.threat_score != null&#10;	   and incident_object.threat_score &#62; 0&#10;&#10;	  then&#10;&#10;		&#34;### &#34; + incident_object.report_labels.threat_intel + &#34; ###\n&#34;&#10;		+&#10;		&#34;Source IP: &#34; + string(incident_object.incident_ip) + &#34;\n&#34;&#10;		+&#10;		&#34;Threat host: &#34; + string(incident_object.threat_host) + &#34;\n&#34;&#10;		+&#10;		&#34;Threat score: &#34; + string(incident_object.threat_score) + &#34;\n&#34;&#10;		+&#10;		&#34;Threat level: &#34; + string(incident_object.threat_level) + &#34;\n&#34;&#10;		+&#10;		&#34;Open ports: &#34;&#10;		+&#10;		(&#10;		  if incident_object.threat_ports != null&#10;			 and count(incident_object.threat_ports) &#62; 0&#10;		  then string join(&#10;			for p in incident_object.threat_ports return string(p),&#10;			&#34;, &#34;&#10;		  )&#10;		  else &#34;none&#34;&#10;		)&#10;&#10;	  else&#10;&#10;		/* ================= FALLBACK ================= */&#10;&#10;		&#34;### BASIC INCIDENT CONTEXT ###\n&#34;&#10;		+&#10;		&#34;Incident type: &#34; + string(incident_object.threat_category) + &#34;\n&#34;&#10;		+&#10;		&#34;Detected pattern: &#34; + string(incident_object.threat_pattern) + &#34;\n&#34;&#10;		+&#10;		&#34;Source: &#34; + string(incident_object.incident_ip) + &#34;\n&#34;&#10;		+&#10;		&#34;Risk assessment: &#34; + string(incident_object.risk_level)&#10;&#10;	   )&#10;&#10;	   +&#10;&#10;	   (&#10;	  /* ================= ASSET ================= */&#10;&#10;	  if incident_object.asset_visible = true&#10;&#10;	  then&#10;		&#34;\n\n### &#34; + incident_object.report_labels.asset + &#34; ###\n&#34;&#10;		+&#10;		&#34;System type: &#34; + string(incident_object.asset_type) + &#34;\n&#34;&#10;		+&#10;		&#34;System owner: &#34; + string(incident_object.asset_owner) + &#34;\n&#34;&#10;		+&#10;		&#34;Criticality: &#34; + string(incident_object.asset_criticality_label)&#10;&#10;	  else &#34;&#34;&#10;	),&#10;&#10;    /* ================= HUMAN REVIEW ================= */&#10;&#10;    human_review:&#10;&#10;     incident_object.report_labels.decision + &#34;: &#34;&#10;	+&#10;	(if audit_decision != null&#10;	 then audit_decision&#10;	 else &#34;Ticket created&#34;)&#10;&#10;	+&#10;&#10;	&#34;\n&#34;&#10;&#10;	+&#10;&#10;	incident_object.report_labels.ai_recommendation&#10;	+ &#34;: &#34;&#10;	+ incident_object.report_labels.impact + &#34; &#34;&#10;	+ string(incident_object.impact)&#10;	+ &#34; / &#34;&#10;	+ incident_object.report_labels.urgency + &#34; &#34;&#10;	+ string(incident_object.urgency)&#10;&#10;	+&#10;&#10;	&#34;\n&#34;&#10;&#10;	+&#10;&#10;	incident_object.report_labels.final_priority&#10;	+ &#34;: &#34;&#10;	+ incident_object.report_labels.impact + &#34; &#34;&#10;	+&#10;	(if final_impact != null&#10;	 then string(final_impact)&#10;	 else string(incident_object.impact))&#10;	+ &#34; / &#34;&#10;	+ incident_object.report_labels.urgency + &#34; &#34;&#10;	+&#10;	(if final_urgency != null&#10;	 then string(final_urgency)&#10;	 else string(incident_object.urgency))&#10;&#10;	+&#10;&#10;	&#34;\n&#34;&#10;&#10;	+&#10;&#10;	incident_object.report_labels.auditor_comment&#10;	+ &#34;: &#34;&#10;	+&#10;	(if human_comment != null&#10;	 then human_comment&#10;	 else &#34;The AI recommendation was accepted without changes.&#34;)&#10;&#10;	+&#10;&#10;	(if gdpr_decision = &#34;abort&#34;&#10;	 then&#10;	   &#34;\n\n&#34;&#10;	   + incident_object.report_labels.gdpr_aborted&#10;	   + &#34;\n&#34;&#10;	   + incident_object.report_labels.reason&#10;	   + &#34;: &#34;&#10;	   +&#10;	   (if gdpr_abort_comment != null&#10;		then gdpr_abort_comment&#10;		else &#34;No reason was provided.&#34;)&#10;	 else &#34;&#34;)&#10;&#10;	+&#10;&#10;	&#34;\n---\n&#34; +&#10;&#10;	&#34;PROCESS STATUS: VALIDATED INCIDENT&#34;,&#10;&#10;    &#10;    /* ================= ACTIONS TAKEN ================= */&#10;&#10;    actions_taken:&#10;&#10;      string join(&#10;&#10;        for step in (&#10;          if incident_object.incident_timeline != null&#10;          then incident_object.incident_timeline&#10;          else []&#10;        )&#10;&#10;        return&#10;&#10;          &#34;👉 &#34; +&#10;&#10;          string(&#10;            if step.step = &#34;GDPR_SKIPPED&#34;&#10;            then &#34;GDPR check not initiated&#34;&#10;&#10;            else if step.step = &#34;GDPR_TICKET_CREATED&#34;&#10;            then &#34;GDPR ticket created&#34;&#10;&#10;            else if step.step = &#34;ISO_TICKET_CREATED&#34;&#10;            then &#34;ISO ticket created&#34;&#10;&#10;            else if step.step = &#34;TICKET_CREATION_SKIPPED&#34;&#10;            then &#34;The entire investigation was aborted.&#34;&#10;&#10;            else step.step&#10;          ) +&#10;&#10;          &#34;:\n&#34; +&#10;&#10;          &#34;Comment (&#34; +&#10;&#10;          string(&#10;            if step.reason_source != null&#10;            then step.reason_source&#10;            else &#34;System&#34;&#10;          ) +&#10;&#10;          &#34;, &#34; +&#10;&#10;          string(step.timestamp) +&#10;&#10;          &#34;): &#34; +&#10;&#10;          string(&#10;            if step.reason != null&#10;            then step.reason&#10;            else &#34;not specified&#34;&#10;          )&#10;&#10;      , &#34;\n&#34;),&#10;&#10;&#10;    /* ================= ISO TOPIC ================= */&#10;&#10;	iso_topic:&#10;&#10;		if contains(incident_object.investigation_report, &#34;VORFALL&#34;)&#10;		then&#10;		  trim(&#10;			substring before(&#10;			  substring after(&#10;				incident_object.investigation_report,&#10;				&#34;1. VORFALL:&#34;&#10;			  ),&#10;			  &#34;2. &#34;&#10;			)&#10;		  )&#10;		else&#10;		  &#34;N/A&#34;,&#10;&#10;    iso_explanation:&#10;    (if llm_analysis.llm_explanation != null&#10;		then string(llm_analysis.llm_explanation)&#10;		else &#34;&#34;),&#10;&#10;    &#10;&#10;    /* ================= ISO MAPPING ================= */&#10;&#10;	iso_mapping:&#10;&#10;		if contains(incident_object.investigation_report, &#34;ISO 27001 MAPPING&#34;)&#10;		then&#10;		  trim(&#10;			substring before(&#10;			  substring after(&#10;				incident_object.investigation_report,&#10;				&#34;3. ISO 27001 MAPPING:&#34;&#10;			  ),&#10;			  &#34;---&#34;&#10;			)&#10;		  )&#10;		else&#10;  &#34;N/A&#34;,&#10;&#10;&#10;    /* ================= GDPR STATUS ================= */&#10;&#10;    dsgvo_status:&#10;&#10;      &#34;Relevance: &#34; +&#10;      string(&#10;        if incident_object.is_gdpr_relevant = true&#10;        then &#34;YES&#34;&#10;        else &#34;NO&#34;&#10;      ) + &#34;\n&#34; +&#10;&#10;      &#34;GDPR decision: &#34; +&#10;      string(&#10;        if gdpr_decision != null and audit_decision != &#34;Create ticket&#34;&#10;        then &#34;Entire investigation aborted&#34;&#10;        else&#10;          (if gdpr_decision = &#34;start&#34;&#10;           then &#34;Investigation was initiated&#34;&#10;           else &#34;Investigation was not initiated&#34;)&#10;      )&#10;&#10;  }&#10;&#10;)" resultVariable="incident_object" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0jnoav8</bpmn:incoming>
+      <bpmn:outgoing>Flow_1eiz0y2</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:subProcess id="Activity_0uj3i4a" name="ISO POST EVALUATE">
+      <bpmn:incoming>Flow_10q65j1</bpmn:incoming>
+      <bpmn:outgoing>Flow_0jnoav8</bpmn:outgoing>
+      <bpmn:startEvent id="Event_1codhch">
+        <bpmn:outgoing>Flow_1qrrhqn</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:scriptTask id="ISO_Post_Evaluate_00" name="ISO Post Evaluate">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=for c in iso_controls return&#10;&#10;  if c = null then null&#10;&#10;  else {&#10;&#10;    text:&#10;      if c.text != null then c.text else &#34;UNKNOWN&#34;,&#10;&#10;    /* 🔁 PRE STATUS */&#10;    status_pre:&#10;      if c.status != null then c.status else &#34;ERFUELLT&#34;,&#10;&#10;    /* 🔥 STATUS POST (ZENTRALE LOGIK) */&#10;    status_post:&#10;&#10;      /* ================= A.16 ================= */&#10;      if c.text != null and starts with(c.text, &#34;A.16.&#34;)&#10;      then&#10;        if detect_real_incident_result = null &#10;           or detect_real_incident_result.is_real_incident != true&#10;        then &#34;ERFUELLT&#34;&#10;&#10;        else if process_failure = true&#10;        then &#34;NICHT&#34;&#10;&#10;        else if incident_object != null &#10;             and incident_object.ticket_created_iso = true&#10;        then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;        else &#34;NICHT&#34;&#10;&#10;      /* ================= A.18 ================= */&#10;      else if c.text != null and starts with(c.text, &#34;A.18.&#34;)&#10;      then&#10;        if detect_real_incident_result = null &#10;           or detect_real_incident_result.is_real_incident != true&#10;        then &#34;ERFUELLT&#34;&#10;&#10;        else if incident_object = null &#10;             or incident_object.gdpr_relevance != &#34;YES&#34;&#10;        then &#34;ERFUELLT&#34;&#10;&#10;        else if process_failure = true&#10;        then &#34;NICHT&#34;&#10;&#10;        else if incident_object != null &#10;             and incident_object.ticket_created_dsgvo = true&#10;        then &#34;TEILWEISE BETROFFEN&#34;&#10;&#10;        else &#34;NICHT&#34;&#10;&#10;      /* ================= REST ================= */&#10;      else&#10;        if c.status != null then c.status else &#34;ERFUELLT&#34;,&#10;&#10;    /* 🔁 CHANGE FLAG (KEINE DUPLIKATE MEHR) */&#10;    changed:&#10;      (&#10;        if c.status != null then c.status else &#34;ERFUELLT&#34;&#10;      )&#10;      !=&#10;      (&#10;        /* 👉 nutzt exakt gleiche Logik wie oben */&#10;        if c.text != null and starts with(c.text, &#34;A.16.&#34;)&#10;        then&#10;          if detect_real_incident_result = null &#10;             or detect_real_incident_result.is_real_incident != true&#10;          then &#34;ERFUELLT&#34;&#10;          else if process_failure = true&#10;          then &#34;NICHT&#34;&#10;          else if incident_object != null &#10;               and incident_object.ticket_created_iso = true&#10;          then &#34;TEILWEISE BETROFFEN&#34;&#10;          else &#34;NICHT&#34;&#10;&#10;        else if c.text != null and starts with(c.text, &#34;A.18.&#34;)&#10;        then&#10;          if detect_real_incident_result = null &#10;             or detect_real_incident_result.is_real_incident != true&#10;          then &#34;ERFUELLT&#34;&#10;          else if incident_object = null &#10;               or incident_object.gdpr_relevance != &#34;YES&#34;&#10;          then &#34;ERFUELLT&#34;&#10;          else if process_failure = true&#10;          then &#34;NICHT&#34;&#10;          else if incident_object != null &#10;               and incident_object.ticket_created_dsgvo = true&#10;          then &#34;TEILWEISE BETROFFEN&#34;&#10;          else &#34;NICHT&#34;&#10;&#10;        else if c.status != null then c.status else &#34;ERFUELLT&#34;&#10;      ),&#10;&#10;    /* 🔍 EXPLANATION (MIT PROCESS FAILURE) */&#10;    explanation:&#10;&#10;      /* ================= A.16 ================= */&#10;      if c.text != null and starts with(c.text, &#34;A.16.&#34;)&#10;      then&#10;        if detect_real_incident_result = null &#10;           or detect_real_incident_result.is_real_incident != true&#10;        then &#34;Kein Sicherheitsvorfall&#34;&#10;&#10;        else if process_failure = true&#10;        then &#34;Prozessversagen: Incident nicht bearbeitet&#34;&#10;&#10;        else if incident_object != null &#10;             and incident_object.ticket_created_iso = true&#10;        then &#34;Ticket created, Incident in Bearbeitung - s. o. &#39;4. Ergriffene Measures&#39;&#34;&#10;&#10;        else &#34;Incident detected, keine Bearbeitung gestartet&#34;&#10;&#10;      /* ================= A.18 ================= */&#10;      else if c.text != null and starts with(c.text, &#34;A.18.&#34;)&#10;      then&#10;        if detect_real_incident_result = null &#10;           or detect_real_incident_result.is_real_incident != true&#10;        then &#34;Kein Sicherheitsvorfall&#34;&#10;&#10;        else if incident_object = null &#10;             or incident_object.gdpr_relevance != &#34;YES&#34;&#10;        then &#34;Kein GDPR-relevanter Incident&#34;&#10;&#10;        else if process_failure = true&#10;        then &#34;GDPR-relevant, keine Measure (Prozessversagen)&#34;&#10;&#10;        else if incident_object != null &#10;             and incident_object.ticket_created_dsgvo = true&#10;        then &#34;GDPR-Check gestartet (Ticket created) - s. o. &#39;4. Ergriffene Measures&#39;&#34;&#10;&#10;        else &#34;GDPR-relevant, keine Measure initiated&#34;&#10;&#10;      else null&#10;  }" resultVariable="iso_controls_final" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_12wrfna</bpmn:incoming>
+        <bpmn:outgoing>Flow_0cxzoin</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="ISO_Post_Render" name="ISO Post Render">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;    iso_controls_final_rendered:&#10;&#10;      for c in (&#10;        if iso_controls_final != null&#10;        then iso_controls_final&#10;        else []&#10;      ) return&#10;&#10;        if c = null then null&#10;&#10;        else {&#10;&#10;          text:&#10;            if c.text != null&#10;            then c.text&#10;            else &#34;UNKNOWN&#34;,&#10;&#10;          explanation:&#10;            if c.explanation != null&#10;            then c.explanation&#10;            else null,&#10;&#10;          rendered:&#10;&#10;            (if c.text != null then c.text else &#34;UNKNOWN&#34;)&#10;&#10;            +&#10;&#10;            (&#10;              if c.explanation != null&#10;              then &#34;\n　　　➤ &#34; + c.explanation&#10;              else &#34;&#34;&#10;            )&#10;        }&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0cxzoin</bpmn:incoming>
+        <bpmn:outgoing>Flow_0s23qo5</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:scriptTask id="ISO_Post_Mapping" name="ISO Post Mapping">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;    iso_mapping_rendered_final:&#10;&#10;      string join(&#10;        for c in (&#10;          if incident_object.iso_controls_final_rendered != null &#10;          then incident_object.iso_controls_final_rendered &#10;          else []&#10;        ) return&#10;&#10;          if c != null and c.rendered != null&#10;          then c.rendered&#10;          else &#34;&#34;,&#10;&#10;        &#34;\n&#34;&#10;      ),&#10;&#10;    iso_control_count_final:&#10;&#10;      count(&#10;        for c in (&#10;          if incident_object.iso_controls_final_rendered != null &#10;          then incident_object.iso_controls_final_rendered &#10;          else []&#10;        ) return&#10;&#10;          if c != null then 1 else null&#10;      )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0s23qo5</bpmn:incoming>
+        <bpmn:outgoing>Flow_1jhbl63</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_0s23qo5" sourceRef="ISO_Post_Render" targetRef="ISO_Post_Mapping" />
+      <bpmn:sequenceFlow id="Flow_0cxzoin" sourceRef="ISO_Post_Evaluate_00" targetRef="ISO_Post_Render" />
+      <bpmn:endEvent id="Event_1des4tm">
+        <bpmn:incoming>Flow_1jhbl63</bpmn:incoming>
+      </bpmn:endEvent>
+      <bpmn:sequenceFlow id="Flow_1qrrhqn" sourceRef="Event_1codhch" targetRef="Process_Failure_Check" />
+      <bpmn:sequenceFlow id="Flow_1jhbl63" sourceRef="ISO_Post_Mapping" targetRef="Event_1des4tm" />
+      <bpmn:sequenceFlow id="Flow_12wrfna" sourceRef="Process_Failure_Check" targetRef="ISO_Post_Evaluate_00" />
+      <bpmn:scriptTask id="Process_Failure_Check" name="Process Failure Check">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=  if detect_real_incident_result != null&#10;     and detect_real_incident_result.is_real_incident = true&#10;&#10;     and incident_object != null&#10;     and incident_object.gdpr_relevance = &#34;YES&#34;&#10;&#10;     and incident_object.ticket_created_iso != true&#10;&#10;  then true&#10;&#10;  else false" resultVariable="process_failure" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1qrrhqn</bpmn:incoming>
+        <bpmn:outgoing>Flow_12wrfna</bpmn:outgoing>
+      </bpmn:scriptTask>
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_10q65j1" sourceRef="Ticket_Creation" targetRef="Activity_0uj3i4a" />
+    <bpmn:sequenceFlow id="Flow_0ljujq2" sourceRef="Audit_Report" targetRef="Event_1pu30zs" />
+    <bpmn:callActivity id="Call_Scenario_Processor" name="Call Scenario Processor">
+      <bpmn:extensionElements>
+        <zeebe:calledElement processId="Start_Incident_Type_Selection" propagateAllChildVariables="true" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_0mneppf</bpmn:incoming>
+      <bpmn:outgoing>Flow_0kepnhr</bpmn:outgoing>
+    </bpmn:callActivity>
+    <bpmn:sequenceFlow id="Flow_0kepnhr" sourceRef="Call_Scenario_Processor" targetRef="Activity_1rkk3bi" />
+    <bpmn:sequenceFlow id="Flow_0mneppf" sourceRef="Start_Process" targetRef="Call_Scenario_Processor" />
+    <bpmn:scriptTask id="Activity_0tgi495" name="Initialize Timestamp">
+      <bpmn:extensionElements>
+        <zeebe:script expression="=put all(&#10;  (if incident_object = null then {} else incident_object),&#10;&#10;  {&#10;    report_timestamp:&#10;&#10;      {&#10;        dt: now(),&#10;        localDt: dt + duration(&#34;PT2H&#34;),  // winter time (PT1H, MEZ = UTC+1) - change to PT2H in summer&#10;&#10;        day:&#10;          if localDt.day &#60; 10&#10;          then &#34;0&#34; + string(localDt.day)&#10;          else string(localDt.day),&#10;&#10;        month:&#10;          substring(month of year(localDt), 1, 3),&#10;&#10;        year:&#10;          string(localDt.year),&#10;&#10;        hour:&#10;          if localDt.hour &#60; 10&#10;          then &#34;0&#34; + string(localDt.hour)&#10;          else string(localDt.hour),&#10;&#10;        minute:&#10;          if localDt.minute &#60; 10&#10;          then &#34;0&#34; + string(localDt.minute)&#10;          else string(localDt.minute),&#10;&#10;        second:&#10;          if localDt.second &#60; 10&#10;          then &#34;0&#34; + string(localDt.second)&#10;          else string(localDt.second),&#10;&#10;        formatted:&#10;          day + &#34;.&#34; + month + &#34; &#34; + year + &#34; &#34; +&#10;          hour + &#34;:&#34; + minute + &#34;:&#34; + second&#10;      }.formatted&#10;  }&#10;)" resultVariable="incident_object" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_1jzlpls</bpmn:incoming>
+      <bpmn:outgoing>Flow_0r6uqpc</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:subProcess id="Ticket_Creation" name="Ticket Creation">
+      <bpmn:incoming>Flow_0r6uqpc</bpmn:incoming>
+      <bpmn:outgoing>Flow_10q65j1</bpmn:outgoing>
+      <bpmn:intermediateThrowEvent id="Event_1wjxhb7">
+        <bpmn:incoming>Ticketerstellen</bpmn:incoming>
+      </bpmn:intermediateThrowEvent>
+      <bpmn:startEvent id="Event_02hjen2">
+        <bpmn:outgoing>Flow_0p9scg6</bpmn:outgoing>
+      </bpmn:startEvent>
+      <bpmn:exclusiveGateway id="Gateway_0eyccgv">
+        <bpmn:incoming>Flow_16zhi9r</bpmn:incoming>
+        <bpmn:incoming>Flow_0dmndri</bpmn:incoming>
+        <bpmn:incoming>Flow_12ukw1z</bpmn:incoming>
+        <bpmn:outgoing>Ticketerstellen</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Ticketerstellen" name="Create ticket" sourceRef="Gateway_0eyccgv" targetRef="Event_1wjxhb7" />
+      <bpmn:scriptTask id="Activity_1t4a3tw" name="Ticket Creation Skipped">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;    ticket_created: false,&#10;    ticket_creation_skipped: true,&#10;	ticket_iso_id: null,&#10;&#10;    ticket_creation_reason:&#10;      if human_comment != null and human_comment != &#34;&#34;&#10;      then human_comment&#10;      else if gdpr_abort_comment != null and gdpr_abort_comment != &#34;&#34;&#10;      then gdpr_abort_comment&#10;      else &#34;Manager Decision&#34;,&#10;&#10;    incident_timeline:&#10;      append(&#10;        if incident_object = null or incident_object.incident_timeline = null&#10;        then []&#10;        else incident_object.incident_timeline,&#10;        {&#10;          step: &#34;TICKET_CREATION_SKIPPED&#34;,&#10;          reason:&#10;            if human_comment != null and human_comment != &#34;&#34;&#10;            then human_comment&#10;            else if gdpr_abort_comment != null and gdpr_abort_comment != &#34;&#34;&#10;            then gdpr_abort_comment&#10;            else &#34;Manager Decision&#34;,&#10;          source:&#10;            if human_comment != null and human_comment != &#34;&#34;&#10;            then &#34;Manager&#34;&#10;            else if gdpr_abort_comment != null and gdpr_abort_comment != &#34;&#34;&#10;            then &#34;gdpr_flow&#34;&#10;            else &#34;System&#34;,&#10;          reason_source: &#34;Manager&#34;,&#10;          timestamp:&#10;          (if incident_object.report_timestamp = null then {} else incident_object.report_timestamp)&#10;        }&#10;      )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1i7w6xl</bpmn:incoming>
+        <bpmn:outgoing>Flow_16zhi9r</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_16zhi9r" sourceRef="Activity_1t4a3tw" targetRef="Gateway_0eyccgv" />
+      <bpmn:scriptTask id="Activity_08ibxmc" name="GDPR Skipped">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;&#10;  {&#10;    dsgvo_applicable: false,&#10;    dsgvo_skipped: true,&#10;    ticket_created_dsgvo: false,&#10;    ticket_dsgvo_id: null,&#10;    incident_timeline:&#10;      append(&#10;        if incident_object = null or incident_object.incident_timeline = null&#10;        then []&#10;        else incident_object.incident_timeline,&#10;        {&#10;          step: &#34;GDPR_SKIPPED&#34;,&#10;          reason:&#10;            if gdpr_abort_comment != null and gdpr_abort_comment != &#34;&#34;&#10;            then gdpr_abort_comment&#10;            else &#34;Nicht relevant&#34;,&#10;          reason_source:&#10;            if gdpr_abort_comment != null and gdpr_abort_comment != &#34;&#34;&#10;            then &#34;Manager Decision&#34;&#10;            else &#34;System&#34;,&#10;          timestamp:&#10;          (if incident_object.report_timestamp = null then {} else incident_object.report_timestamp)&#10;        }&#10;      )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_1sld313</bpmn:incoming>
+        <bpmn:outgoing>Flow_0dmndri</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_0dmndri" sourceRef="Activity_08ibxmc" targetRef="Gateway_0eyccgv" />
+      <bpmn:scriptTask id="Activity_1dceppq" name="GDPR Ticket Outcome capture">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  (if incident_object = null then {} else incident_object),&#10;&#10;  {&#10;    ticket_created: true,&#10;    ticket_created_dsgvo: true,&#10;&#10;    ticket_dsgvo_id:&#10;      if ticket_dsgvo_id != null&#10;      then ticket_dsgvo_id&#10;      else incident_object.ticket_dsgvo_id,&#10;&#10;    incident_timeline:&#10;      append(&#10;        if incident_object = null or incident_object.incident_timeline = null&#10;        then []&#10;        else incident_object.incident_timeline,&#10;        {&#10;          step: &#34;GDPR_TICKET_CREATED&#34;,&#10;&#10;          reason:&#10;            if ticket_dsgvo_id != null&#10;            then &#34; &#39;&#34; + string(ticket_dsgvo_id) + &#34;&#39;&#34;&#10;            else &#34;GDPR ticket created&#34;,&#10;&#10;          reason_source: &#34;System&#34;,&#10;&#10;          timestamp:&#10;          (if incident_object.report_timestamp = null then {} else incident_object.report_timestamp)&#10;        }&#10;      )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0m1m2mc</bpmn:incoming>
+        <bpmn:outgoing>Flow_12ukw1z</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_12ukw1z" sourceRef="Activity_1dceppq" targetRef="Gateway_0eyccgv" />
+      <bpmn:exclusiveGateway id="Gateway_0rp3sxk" name="GDPR Untersuchung starten?" default="Flow_1sld313">
+        <bpmn:incoming>Flow_1y90udi</bpmn:incoming>
+        <bpmn:outgoing>Flow_1sld313</bpmn:outgoing>
+        <bpmn:outgoing>Flow_13d2uso</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_1sld313" name="Kein GDPR Ticket" sourceRef="Gateway_0rp3sxk" targetRef="Activity_08ibxmc" />
+      <bpmn:sequenceFlow id="Flow_13d2uso" name="GDPR Create ticket" sourceRef="Gateway_0rp3sxk" targetRef="Activity_0qnzcua">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=gdpr_decision != null and gdpr_decision = "start"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:serviceTask id="Activity_0qnzcua" name="Prepare GDPR Ticket" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="https://httpbin.org/post" target="url" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="=false" target="storeResponse" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="=20" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=20" target="readTimeoutInSeconds" />
+            <zeebe:input source="={&#10;  ticket_created: true,&#10;  ticket_id: &#34;INC-SIM-10204&#34;,&#10;  ticket_type: &#34;GDPR&#34;,&#10;  target_platform: &#34;ITSM Platform&#34;,&#10;  status: &#34;SIMULATED&#34;,&#10;  created_at: string(now())&#10;}" target="body" />
+            <zeebe:input source="=false" target="ignoreNullValues" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultExpression" value="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;  {&#10;    ticket_dsgvo_id: &#34;INC-SIM-10204&#34;,&#10;    ticket_dsgvo_status: &#34;SIMULATED&#34;,&#10;    ticket_dsgvo_platform: &#34;ITSM Platform&#34;&#10;  }&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_13d2uso</bpmn:incoming>
+        <bpmn:outgoing>Flow_0m1m2mc</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_0m1m2mc" sourceRef="Activity_0qnzcua" targetRef="Activity_1dceppq" />
+      <bpmn:scriptTask id="Activity_0u43077" name="ISO Ticket Outcome capture">
+        <bpmn:extensionElements>
+          <zeebe:script expression="=put all(&#10;  (if incident_object = null then {} else incident_object),&#10;&#10;  {&#10;    ticket_created: true,&#10;    ticket_created_iso: true,&#10;&#10;    ticket_iso_id:&#10;      if ticket_iso_id != null&#10;      then ticket_iso_id&#10;      else incident_object.ticket_iso_id,&#10;&#10;    incident_timeline:&#10;      append(&#10;        if incident_object = null or incident_object.incident_timeline = null&#10;        then []&#10;        else incident_object.incident_timeline,&#10;        {&#10;          step: &#34;ISO_TICKET_CREATED&#34;,&#10;&#10;          reason:&#10;            if ticket_iso_id != null&#10;            then &#34; &#39;&#34; + string(ticket_iso_id) + &#34;&#39;&#34;&#10;            else &#34;ISO ticket created&#34;,&#10;&#10;          reason_source: &#34;System&#34;,&#10;&#10;          timestamp:&#10;          (if incident_object.report_timestamp = null then {} else incident_object.report_timestamp)&#10;&#10;        }&#10;      )&#10;  }&#10;)" resultVariable="incident_object" />
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0cny9uy</bpmn:incoming>
+        <bpmn:outgoing>Flow_1y90udi</bpmn:outgoing>
+      </bpmn:scriptTask>
+      <bpmn:sequenceFlow id="Flow_1y90udi" sourceRef="Activity_0u43077" targetRef="Gateway_0rp3sxk" />
+      <bpmn:serviceTask id="Activity_1al623d" name="Prepare ISO Ticket" zeebe:modelerTemplate="io.camunda.connectors.HttpJson.v2" zeebe:modelerTemplateVersion="13" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgiIGhlaWdodD0iMTgiIHZpZXdCb3g9IjAgMCAxOCAxOCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTE3LjAzMzUgOC45OTk5N0MxNy4wMzM1IDEzLjQ0NzUgMTMuNDI4MSAxNy4wNTI5IDguOTgwNjUgMTcuMDUyOUM0LjUzMzE2IDE3LjA1MjkgMC45Mjc3NjUgMTMuNDQ3NSAwLjkyNzc2NSA4Ljk5OTk3QzAuOTI3NzY1IDQuNTUyNDggNC41MzMxNiAwLjk0NzA4MyA4Ljk4MDY1IDAuOTQ3MDgzQzEzLjQyODEgMC45NDcwODMgMTcuMDMzNSA0LjU1MjQ4IDE3LjAzMzUgOC45OTk5N1oiIGZpbGw9IiM1MDU1NjIiLz4KPHBhdGggZD0iTTQuOTMxMjYgMTQuMTU3MUw2Ljc4MTA2IDMuNzE0NzFIMTAuMTM3NUMxMS4xOTE3IDMuNzE0NzEgMTEuOTgyNCAzLjk4MzIzIDEyLjUwOTUgNC41MjAyN0MxMy4wNDY1IDUuMDQ3MzYgMTMuMzE1IDUuNzMzNTggMTMuMzE1IDYuNTc4OTJDMTMuMzE1IDcuNDQ0MTQgMTMuMDcxNCA4LjE1NTIyIDEyLjU4NDEgOC43MTIxNUMxMi4xMDY3IDkuMjU5MTMgMTEuNDU1MyA5LjYzNzA1IDEwLjYyOTggOS44NDU5TDEyLjA2MTkgMTQuMTU3MUgxMC4zMzE1TDkuMDMzNjQgMTAuMDI0OUg3LjI0MzUxTDYuNTEyNTQgMTQuMTU3MUg0LjkzMTI2Wk03LjQ5NzExIDguNTkyODFIOS4yNDI0OEM5Ljk5ODMyIDguNTkyODEgMTAuNTkwMSA4LjQyMzc0IDExLjAxNzcgOC4wODU2MUMxMS40NTUzIDcuNzM3NTMgMTEuNjc0MSA3LjI2NTEzIDExLjY3NDEgNi42Njg0MkMxMS42NzQxIDYuMTkxMDYgMTEuNTI0OSA1LjgxODExIDExLjIyNjUgNS41NDk1OUMxMC45MjgyIDUuMjcxMTMgMTAuNDU1OCA1LjEzMTkgOS44MDkzNiA1LjEzMTlIOC4xMDg3NEw3LjQ5NzExIDguNTkyODFaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda:http-json:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="noAuth" target="authentication.type" />
+            <zeebe:input source="POST" target="method" />
+            <zeebe:input source="https://httpbin.org/post" target="url" />
+            <zeebe:input source="={ &#34;Content-Type&#34;: &#34;application/json&#34; }" target="headers" />
+            <zeebe:input source="=false" target="storeResponse" />
+            <zeebe:input source="=false" target="followRedirects" />
+            <zeebe:input source="=60" target="connectionTimeoutInSeconds" />
+            <zeebe:input source="=60" target="readTimeoutInSeconds" />
+            <zeebe:input source="={&#10;  ticket_created: true,&#10;  ticket_id: &#34;INC-SIM-10203&#34;,&#10;  ticket_type: &#34;ISO&#34;,&#10;  target_platform: &#34;ITSM Platform&#34;,&#10;  status: &#34;SIMULATED&#34;,&#10;  created_at: string(now())&#10;}" target="body" />
+            <zeebe:input source="=false" target="ignoreNullValues" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="13" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.HttpJson.v2" />
+            <zeebe:header key="resultVariable" value="iso_ticket_result" />
+            <zeebe:header key="resultExpression" value="=put all(&#10;  if incident_object = null then {} else incident_object,&#10;  {&#10;    ticket_iso_id: &#34;INC-SIM-10203&#34;,&#10;    ticket_iso_status: &#34;SIMULATED&#34;,&#10;    ticket_iso_platform: &#34;ITSM Platform&#34;&#10;  }&#10;)" />
+            <zeebe:header key="retryBackoff" value="PT0S" />
+          </zeebe:taskHeaders>
+        </bpmn:extensionElements>
+        <bpmn:incoming>Flow_0iy4woa</bpmn:incoming>
+        <bpmn:outgoing>Flow_0cny9uy</bpmn:outgoing>
+      </bpmn:serviceTask>
+      <bpmn:sequenceFlow id="Flow_0cny9uy" sourceRef="Activity_1al623d" targetRef="Activity_0u43077" />
+      <bpmn:exclusiveGateway id="Gateway_12k235j" name="Manager Decision" default="Flow_0iy4woa">
+        <bpmn:incoming>Flow_0p9scg6</bpmn:incoming>
+        <bpmn:outgoing>Flow_1i7w6xl</bpmn:outgoing>
+        <bpmn:outgoing>Flow_0iy4woa</bpmn:outgoing>
+      </bpmn:exclusiveGateway>
+      <bpmn:sequenceFlow id="Flow_1i7w6xl" name="Vorgang abbrechen" sourceRef="Gateway_12k235j" targetRef="Activity_1t4a3tw">
+        <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">=audit_decision = "Vorgang abbrechen"</bpmn:conditionExpression>
+      </bpmn:sequenceFlow>
+      <bpmn:sequenceFlow id="Flow_0iy4woa" sourceRef="Gateway_12k235j" targetRef="Activity_1al623d" />
+      <bpmn:sequenceFlow id="Flow_0p9scg6" sourceRef="Event_02hjen2" targetRef="Gateway_12k235j" />
+    </bpmn:subProcess>
+    <bpmn:sequenceFlow id="Flow_0r6uqpc" sourceRef="Activity_0tgi495" targetRef="Ticket_Creation" />
+    <bpmn:sequenceFlow id="Flow_0jnoav8" sourceRef="Activity_0uj3i4a" targetRef="Create_Audit_Sections" />
+    <bpmn:startEvent id="Start_Process" name="Start Process" zeebe:modelerTemplate="io.camunda.connectors.inbound.KafkaMessageStart.v1" zeebe:modelerTemplateVersion="7" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0nMTgnIGhlaWdodD0nMTgnIHZpZXdCb3g9JzAgMCAyNTYgNDE2JyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHByZXNlcnZlQXNwZWN0UmF0aW89J3hNaWRZTWlkJz4KICAgIDxwYXRoIGQ9J00yMDEuODE2IDIzMC4yMTZjLTE2LjE4NiAwLTMwLjY5NyA3LjE3MS00MC42MzQgMTguNDYxbC0yNS40NjMtMTguMDI2YzIuNzAzLTcuNDQyIDQuMjU1LTE1LjQzMyA0LjI1NS0yMy43OTcgMC04LjIxOS0xLjQ5OC0xNi4wNzYtNC4xMTItMjMuNDA4bDI1LjQwNi0xNy44MzVjOS45MzYgMTEuMjMzIDI0LjQwOSAxOC4zNjUgNDAuNTQ4IDE4LjM2NSAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yOS44NzktMjQuMzA5LTU0LjE4NC01NC4xODQtNTQuMTg0LTI5Ljg3NSAwLTU0LjE4NCAyNC4zMDUtNTQuMTg0IDU0LjE4NCAwIDUuMzQ4LjgwOCAxMC41MDUgMi4yNTggMTUuMzg5bC0yNS40MjMgMTcuODQ0Yy0xMC42Mi0xMy4xNzUtMjUuOTExLTIyLjM3NC00My4zMzMtMjUuMTgydi0zMC42NGMyNC41NDQtNS4xNTUgNDMuMDM3LTI2Ljk2MiA0My4wMzctNTMuMDE5QzEyNC4xNzEgMjQuMzA1IDk5Ljg2MiAwIDY5Ljk4NyAwIDQwLjExMiAwIDE1LjgwMyAyNC4zMDUgMTUuODAzIDU0LjE4NGMwIDI1LjcwOCAxOC4wMTQgNDcuMjQ2IDQyLjA2NyA1Mi43Njl2MzEuMDM4QzI1LjA0NCAxNDMuNzUzIDAgMTcyLjQwMSAwIDIwNi44NTRjMCAzNC42MjEgMjUuMjkyIDYzLjM3NCA1OC4zNTUgNjguOTR2MzIuNzc0Yy0yNC4yOTkgNS4zNDEtNDIuNTUyIDI3LjAxMS00Mi41NTIgNTIuODk0IDAgMjkuODc5IDI0LjMwOSA1NC4xODQgNTQuMTg0IDU0LjE4NCAyOS44NzUgMCA1NC4xODQtMjQuMzA1IDU0LjE4NC01NC4xODQgMC0yNS44ODMtMTguMjUzLTQ3LjU1My00Mi41NTItNTIuODk0di0zMi43NzVhNjkuOTY1IDY5Ljk2NSAwIDAgMCA0Mi42LTI0Ljc3NmwyNS42MzMgMTguMTQzYy0xLjQyMyA0Ljg0LTIuMjIgOS45NDYtMi4yMiAxNS4yNCAwIDI5Ljg3OSAyNC4zMDkgNTQuMTg0IDU0LjE4NCA1NC4xODQgMjkuODc1IDAgNTQuMTg0LTI0LjMwNSA1NC4xODQtNTQuMTg0IDAtMjkuODc5LTI0LjMwOS01NC4xODQtNTQuMTg0LTU0LjE4NHptMC0xMjYuNjk1YzE0LjQ4NyAwIDI2LjI3IDExLjc4OCAyNi4yNyAyNi4yNzFzLTExLjc4MyAyNi4yNy0yNi4yNyAyNi4yNy0yNi4yNy0xMS43ODctMjYuMjctMjYuMjdjMC0xNC40ODMgMTEuNzgzLTI2LjI3MSAyNi4yNy0yNi4yNzF6bS0xNTguMS00OS4zMzdjMC0xNC40ODMgMTEuNzg0LTI2LjI3IDI2LjI3MS0yNi4yN3MyNi4yNyAxMS43ODcgMjYuMjcgMjYuMjdjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN3ptNTIuNTQxIDMwNy4yNzhjMCAxNC40ODMtMTEuNzgzIDI2LjI3LTI2LjI3IDI2LjI3cy0yNi4yNzEtMTEuNzg3LTI2LjI3MS0yNi4yN2MwLTE0LjQ4MyAxMS43ODQtMjYuMjcgMjYuMjcxLTI2LjI3czI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN3ptLTI2LjI3Mi0xMTcuOTdjLTIwLjIwNSAwLTM2LjY0Mi0xNi40MzQtMzYuNjQyLTM2LjYzOCAwLTIwLjIwNSAxNi40MzctMzYuNjQyIDM2LjY0Mi0zNi42NDIgMjAuMjA0IDAgMzYuNjQxIDE2LjQzNyAzNi42NDEgMzYuNjQyIDAgMjAuMjA0LTE2LjQzNyAzNi42MzgtMzYuNjQxIDM2LjYzOHptMTMxLjgzMSA2Ny4xNzljLTE0LjQ4NyAwLTI2LjI3LTExLjc4OC0yNi4yNy0yNi4yNzFzMTEuNzgzLTI2LjI3IDI2LjI3LTI2LjI3IDI2LjI3IDExLjc4NyAyNi4yNyAyNi4yN2MwIDE0LjQ4My0xMS43ODMgMjYuMjcxLTI2LjI3IDI2LjI3MXonCiAgICAgICAgICBzdHlsZT0nZmlsbDojMjMxZjIwJy8+Cjwvc3ZnPg==">
+      <bpmn:extensionElements>
+        <zeebe:properties>
+          <zeebe:property name="inbound.type" value="io.camunda:connector-kafka-inbound:1" />
+          <zeebe:property name="authenticationType" value="custom" />
+          <zeebe:property name="topic.bootstrapServers" value="kafka:9094" />
+          <zeebe:property name="topic.topicName" value="security-events" />
+          <zeebe:property name="groupId" value="incident-intake-consumer-agentic" />
+          <zeebe:property name="autoOffsetReset" value="latest" />
+          <zeebe:property name="schemaStrategy.type" value="noSchema" />
+          <zeebe:property name="consumeUnmatchedEvents" value="true" />
+          <zeebe:property name="correlationRequired" value="notRequired" />
+          <zeebe:property name="deduplicationModeManualFlag" value="false" />
+          <zeebe:property name="deduplicationMode" value="AUTO" />
+          <zeebe:property name="resultVariable" value="" />
+          <zeebe:property name="resultExpression" value="={incident_topic: value.incident_topic, scenario_type: value.scenario_type}" />
+        </zeebe:properties>
+      </bpmn:extensionElements>
+      <bpmn:outgoing>Flow_0mneppf</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="MessageEventDefinition_0m39rc8" messageRef="Message_0v98ura" />
+    </bpmn:startEvent>
+    <bpmn:adHocSubProcess id="AI_Agent_Investigation" name="AI Investigation Agent (MCP)" zeebe:modelerTemplate="io.camunda.connectors.agenticai.aiagent.jobworker.v1" zeebe:modelerTemplateVersion="11" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTYiIGZpbGw9IiNBNTZFRkYiLz4KPG1hc2sgaWQ9InBhdGgtMi1vdXRzaWRlLTFfMTg1XzYiIG1hc2tVbml0cz0idXNlclNwYWNlT25Vc2UiIHg9IjQiIHk9IjQiIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgZmlsbD0iYmxhY2siPgo8cmVjdCBmaWxsPSJ3aGl0ZSIgeD0iNCIgeT0iNCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjI0Ii8+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIvPgo8L21hc2s+CjxwYXRoIGZpbGwtcnVsZT0iZXZlbm9kZCIgY2xpcC1ydWxlPSJldmVub2RkIiBkPSJNMjAuMDEwNSAxMi4wOTg3QzE4LjQ5IDEwLjU4OTQgMTcuMTU5NCA4LjEwODE0IDE2LjE3OTkgNi4wMTEwM0MxNi4xNTIgNi4wMDQ1MSAxNi4xMTc2IDYgMTYuMDc5NCA2QzE2LjA0MTEgNiAxNi4wMDY2IDYuMDA0NTEgMTUuOTc4OCA2LjAxMTA0QzE0Ljk5OTQgOC4xMDgxNCAxMy42Njk3IDEwLjU4ODkgMTIuMTQ4MSAxMi4wOTgxQzEwLjYyNjkgMTMuNjA3MSA4LjEyNTY4IDE0LjkyNjQgNi4wMTE1NyAxNS44OTgxQzYuMDA0NzQgMTUuOTI2MSA2IDE1Ljk2MTEgNiAxNkM2IDE2LjAzODcgNi4wMDQ2OCAxNi4wNzM2IDYuMDExNDQgMTYuMTAxNEM4LjEyNTE5IDE3LjA3MjkgMTAuNjI2MiAxOC4zOTE5IDEyLjE0NzcgMTkuOTAxNkMxMy42Njk3IDIxLjQxMDcgMTQuOTk5NiAyMy44OTIgMTUuOTc5MSAyNS45ODlDMTYuMDA2OCAyNS45OTU2IDE2LjA0MTEgMjYgMTYuMDc5MyAyNkMxNi4xMTc1IDI2IDE2LjE1MTkgMjUuOTk1NCAxNi4xNzk2IDI1Ljk4OUMxNy4xNTkxIDIzLjg5MiAxOC40ODg4IDIxLjQxMSAyMC4wMDk5IDE5LjkwMjFNMjAuMDA5OSAxOS45MDIxQzIxLjUyNTMgMTguMzk4NyAyMy45NDY1IDE3LjA2NjkgMjUuOTkxNSAxNi4wODI0QzI1Ljk5NjUgMTYuMDU5MyAyNiAxNi4wMzEgMjYgMTUuOTk5N0MyNiAxNS45Njg0IDI1Ljk5NjUgMTUuOTQwMyAyNS45OTE1IDE1LjkxNzFDMjMuOTQ3NCAxNC45MzI3IDIxLjUyNTkgMTMuNjAxIDIwLjAxMDUgMTIuMDk4NyIgZmlsbD0id2hpdGUiLz4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yMC4wMTA1IDEyLjA5ODdDMTguNDkgMTAuNTg5NCAxNy4xNTk0IDguMTA4MTQgMTYuMTc5OSA2LjAxMTAzQzE2LjE1MiA2LjAwNDUxIDE2LjExNzYgNiAxNi4wNzk0IDZDMTYuMDQxMSA2IDE2LjAwNjYgNi4wMDQ1MSAxNS45Nzg4IDYuMDExMDRDMTQuOTk5NCA4LjEwODE0IDEzLjY2OTcgMTAuNTg4OSAxMi4xNDgxIDEyLjA5ODFDMTAuNjI2OSAxMy42MDcxIDguMTI1NjggMTQuOTI2NCA2LjAxMTU3IDE1Ljg5ODFDNi4wMDQ3NCAxNS45MjYxIDYgMTUuOTYxMSA2IDE2QzYgMTYuMDM4NyA2LjAwNDY4IDE2LjA3MzYgNi4wMTE0NCAxNi4xMDE0QzguMTI1MTkgMTcuMDcyOSAxMC42MjYyIDE4LjM5MTkgMTIuMTQ3NyAxOS45MDE2QzEzLjY2OTcgMjEuNDEwNyAxNC45OTk2IDIzLjg5MiAxNS45NzkxIDI1Ljk4OUMxNi4wMDY4IDI1Ljk5NTYgMTYuMDQxMSAyNiAxNi4wNzkzIDI2QzE2LjExNzUgMjYgMTYuMTUxOSAyNS45OTU0IDE2LjE3OTYgMjUuOTg5QzE3LjE1OTEgMjMuODkyIDE4LjQ4ODggMjEuNDExIDIwLjAwOTkgMTkuOTAyMU0yMC4wMDk5IDE5LjkwMjFDMjEuNTI1MyAxOC4zOTg3IDIzLjk0NjUgMTcuMDY2OSAyNS45OTE1IDE2LjA4MjRDMjUuOTk2NSAxNi4wNTkzIDI2IDE2LjAzMSAyNiAxNS45OTk3QzI2IDE1Ljk2ODQgMjUuOTk2NSAxNS45NDAzIDI1Ljk5MTUgMTUuOTE3MUMyMy45NDc0IDE0LjkzMjcgMjEuNTI1OSAxMy42MDEgMjAuMDEwNSAxMi4wOTg3IiBzdHJva2U9IiM0OTFEOEIiIHN0cm9rZS13aWR0aD0iNCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIgbWFzaz0idXJsKCNwYXRoLTItb3V0c2lkZS0xXzE4NV82KSIvPgo8L3N2Zz4K">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="io.camunda.agenticai:aiagent-job-worker:1" retries="3" />
+        <zeebe:ioMapping>
+          <zeebe:input source="openaiCompatible" target="provider.type" />
+          <zeebe:input source="http://host.docker.internal:9995/v1" target="provider.openaiCompatible.endpoint" />
+          <zeebe:input source="stub" target="provider.openaiCompatible.authentication.apiKey" />
+          <zeebe:input source="soc-stub-1" target="provider.openaiCompatible.model.model" />
+          <zeebe:input source="=&#34;You are a SOC investigation agent. Given a security incident description, use the tools provided to you to (1) look up any external IP against open threat intelligence, (2) resolve any named internal system against the asset inventory, and (3) assess whether the incident engages GDPR obligations. Call every tool that applies. Do not guess tools that were not provided. When all applicable tools have returned, summarise the findings in plain prose for a human analyst to validate.&#34;" target="data.systemPrompt.prompt" />
+          <zeebe:input source="=sim_input.incident_topic" target="data.userPrompt.prompt" />
+          <zeebe:input target="agentContext" />
+          <zeebe:input source="in-process" target="data.memory.storage.type" />
+          <zeebe:input source="=20" target="data.memory.contextWindowSize" />
+          <zeebe:input source="=10" target="data.limits.maxModelCalls" />
+          <zeebe:input source="WAIT_FOR_TOOL_CALL_RESULTS" target="data.events.behavior" />
+          <zeebe:input source="text" target="data.response.format.type" />
+          <zeebe:input source="=false" target="data.response.format.parseJson" />
+          <zeebe:input source="=false" target="data.response.includeAssistantMessage" />
+          <zeebe:input source="=false" target="data.response.includeAgentContext" />
+          <zeebe:input target="agent" />
+          <zeebe:output source="=agent" target="agent" />
+        </zeebe:ioMapping>
+        <zeebe:taskHeaders>
+          <zeebe:header key="elementTemplateVersion" value="11" />
+          <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.aiagent.jobworker.v1" />
+          <zeebe:header key="retryBackoff" value="PT30S" />
+        </zeebe:taskHeaders>
+        <zeebe:properties>
+          <zeebe:property name="io.camunda.agenticai.toolContainer" value="true" />
+        </zeebe:properties>
+        <zeebe:adHoc outputCollection="toolCallResults" outputElement="={&#10;  id: toolCall._meta.id,&#10;  name: toolCall._meta.name,&#10;  content: toolCallResult,&#10;  completedAt: now()&#10;}" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_agent_in</bpmn:incoming>
+      <bpmn:outgoing>Flow_agent_out</bpmn:outgoing>
+      <bpmn:serviceTask id="MCP_SOC_Tools" name="SOC Tools (MCP)" zeebe:modelerTemplate="io.camunda.connectors.agenticai.mcp.remoteclient.v0" zeebe:modelerTemplateVersion="3" zeebe:modelerTemplateIcon="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiBmaWxsPSJub25lIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgICA8cGF0aCBkPSJNMjUgOTcuODUyOEw5Mi44ODIzIDI5Ljk3MDZDMTAyLjI1NSAyMC41OTggMTE3LjQ1MSAyMC41OTggMTI2LjgyMyAyOS45NzA2VjI5Ljk3MDZDMTM2LjE5NiAzOS4zNDMxIDEzNi4xOTYgNTQuNTM5MSAxMjYuODIzIDYzLjkxMTdMNzUuNTU4MSAxMTUuMTc3IiBzdHJva2U9ImJsYWNrIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICAgIDxwYXRoIGQ9Ik03Ni4yNjUzIDExNC40N0wxMjYuODIzIDYzLjkxMTdDMTM2LjE5NiA1NC41MzkxIDE1MS4zOTIgNTQuNTM5MSAxNjAuNzY1IDYzLjkxMTdMMTYxLjExOCA2NC4yNjUyQzE3MC40OTEgNzMuNjM3OCAxNzAuNDkxIDg4LjgzMzggMTYxLjExOCA5OC4yMDYzTDk5LjcyNDggMTU5LjZDOTYuNjAwNiAxNjIuNzI0IDk2LjYwMDYgMTY3Ljc4OSA5OS43MjQ4IDE3MC45MTNMMTEyLjMzMSAxODMuNTIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogICAgPHBhdGggZD0iTTEwOS44NTMgNDYuOTQxMUw1OS42NDgyIDk3LjE0NTdDNTAuMjc1NyAxMDYuNTE4IDUwLjI3NTcgMTIxLjcxNCA1OS42NDgyIDEzMS4wODdWMTMxLjA4N0M2OS4wMjA4IDE0MC40NTkgODQuMjE2OCAxNDAuNDU5IDkzLjU4OTQgMTMxLjA4N0wxNDMuNzk0IDgwLjg4MjIiIHN0cm9rZT0iYmxhY2siIHN0cm9rZS13aWR0aD0iMTIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K">
+        <bpmn:extensionElements>
+          <zeebe:taskDefinition type="io.camunda.agenticai:mcpremoteclient:1" retries="3" />
+          <zeebe:ioMapping>
+            <zeebe:input source="http" target="data.transport.type" />
+            <zeebe:input source="http://host.docker.internal:9996/mcp" target="data.transport.http.url" />
+            <zeebe:input source="noAuth" target="data.transport.http.authentication.type" />
+            <zeebe:input source="=false" target="data.options.clientCache" />
+            <zeebe:input source="aiAgentTool" target="data.connectorMode.type" />
+            <zeebe:input source="=toolCall.method" target="data.connectorMode.toolOperation.method" />
+            <zeebe:input source="=toolCall.params" target="data.connectorMode.toolOperation.params" />
+          </zeebe:ioMapping>
+          <zeebe:taskHeaders>
+            <zeebe:header key="elementTemplateVersion" value="3" />
+            <zeebe:header key="elementTemplateId" value="io.camunda.connectors.agenticai.mcp.remoteclient.v0" />
+            <zeebe:header key="resultVariable" value="toolCallResult" />
+            <zeebe:header key="retryBackoff" value="PT30S" />
+          </zeebe:taskHeaders>
+          <zeebe:properties>
+            <zeebe:property name="io.camunda.agenticai.gateway.type" value="mcpClient" />
+          </zeebe:properties>
+        </bpmn:extensionElements>
+      </bpmn:serviceTask>
+    </bpmn:adHocSubProcess>
+    <bpmn:scriptTask id="Map_MCP_Tool_Results" name="Map MCP Tool Results">
+      <bpmn:extensionElements>
+        <zeebe:script expression="={&#10;  _t:&#10;    if count(toolCallResults[content.name = &#34;threat_intel_lookup&#34;]) = 0 then null&#10;    else if toolCallResults[content.name = &#34;threat_intel_lookup&#34;][1].content.isError = true then null&#10;    else from json(toolCallResults[content.name = &#34;threat_intel_lookup&#34;][1].content.content[1].text),&#10;  _a:&#10;    if count(toolCallResults[content.name = &#34;asset_lookup&#34;]) = 0 then null&#10;    else if toolCallResults[content.name = &#34;asset_lookup&#34;][1].content.isError = true then null&#10;    else from json(toolCallResults[content.name = &#34;asset_lookup&#34;][1].content.content[1].text),&#10;  _g:&#10;    if count(toolCallResults[content.name = &#34;check_gdpr_relevance&#34;]) = 0 then null&#10;    else if toolCallResults[content.name = &#34;check_gdpr_relevance&#34;][1].content.isError = true then null&#10;    else from json(toolCallResults[content.name = &#34;check_gdpr_relevance&#34;][1].content.content[1].text),&#10;&#10;  /* threat_intel: downstream reads threat_intel.body.{ports,hostnames,tags,cpes}&#10;     and threat_intel.ip, so the flat MCP result is wrapped in a body envelope. */&#10;  threat_intel:&#10;    if _t = null then null&#10;    else {&#10;      ip: _t.ip,&#10;      found: _t.found,&#10;      source: _t.source,&#10;      http_status: _t.http_status,&#10;      body: {&#10;        ports:     if _t.ports != null then _t.ports else [],&#10;        hostnames: if _t.hostnames != null then _t.hostnames else [],&#10;        tags:      if _t.tags != null then _t.tags else [],&#10;        cpes:      if _t.cpes != null then _t.cpes else []&#10;      }&#10;    },&#10;&#10;  /* asset_result: MCP field names mapped onto the names the blueprint expects. */&#10;  asset_result:&#10;    if _a = null then null&#10;    else {&#10;      asset_name:        _a.hostname,&#10;      asset_type:        _a.asset_class,&#10;      asset_owner:       _a.owner_unit,&#10;      asset_criticality: _a.business_criticality,&#10;      found:                   _a.found,&#10;      contains_personal_data:  _a.contains_personal_data,&#10;      data_categories:         _a.data_categories&#10;    },&#10;&#10;  /* gdpr_result: the clean object, for anything new that wants it. */&#10;  gdpr_result: _g,&#10;&#10;  /* gdpr_raw: rebuilt in the Bedrock envelope the blueprint&#39;s FEEL parses,&#10;     so the existing GDPR gateway and report sections keep working. */&#10;  gdpr_raw:&#10;    if _g = null then null&#10;    else {&#10;      body: {&#10;        content: [&#10;          { type: &#34;text&#34;, text: &#34;&#34; },&#10;          { type: &#34;text&#34;, text:&#10;              &#34;RELEVANZ: &#34; + (if _g.gdpr_relevance = &#34;YES&#34; then &#34;JA&#34; else &#34;NEIN&#34;)&#10;            + &#34;\nKATEGORIE: &#34; + (&#10;                if _g.matched_indicators != null and count(_g.matched_indicators) &#62; 0&#10;                then string join(_g.matched_indicators, &#34;, &#34;)&#10;                else &#34;keine&#34;&#10;              )&#10;            + &#34;\nRISIKO-ASSESSMENT: &#34; + (if _g.gdpr_relevance = &#34;YES&#34; then &#34;HOCH&#34; else &#34;NIEDRIG&#34;)&#10;            + &#34;\nACTION: &#34; + (if _g.reasoning != null then _g.reasoning else &#34;keine&#34;)&#10;            + &#34;\n&#34;&#10;          }&#10;        ]&#10;      }&#10;    },&#10;&#10;  mcp_tool_results_raw: toolCallResults&#10;}" resultVariable="mcp_map" />
+        <zeebe:ioMapping>
+          <zeebe:output source="=mcp_map.threat_intel" target="threat_intel" />
+          <zeebe:output source="=mcp_map.asset_result" target="asset_result" />
+          <zeebe:output source="=mcp_map.gdpr_result" target="gdpr_result" />
+          <zeebe:output source="=mcp_map.gdpr_raw" target="gdpr_raw" />
+          <zeebe:output source="=mcp_map.mcp_tool_results_raw" target="mcp_tool_results_raw" />
+        </zeebe:ioMapping>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_agent_out</bpmn:incoming>
+      <bpmn:outgoing>Flow_adapter_out</bpmn:outgoing>
+    </bpmn:scriptTask>
+    <bpmn:sequenceFlow id="Flow_agent_in" sourceRef="Activity_0w8ynwr" targetRef="AI_Agent_Investigation" />
+    <bpmn:sequenceFlow id="Flow_agent_out" sourceRef="AI_Agent_Investigation" targetRef="Map_MCP_Tool_Results" />
+    <bpmn:sequenceFlow id="Flow_adapter_out" sourceRef="Map_MCP_Tool_Results" targetRef="Content_Enrichment" />
+  </bpmn:process>
+  <bpmn:message id="Message_0v98ura" name="36184a82-1e1d-4b89-8240-f281f5d5568b" zeebe:modelerTemplate="io.camunda.connectors.inbound.KafkaMessageStart.v1" />
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_agentic_soc">
+      <bpmndi:BPMNShape id="Activity_1nhkciu_di" bpmnElement="ISMS_Incident_Review">
+        <dc:Bounds x="1744" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1kp3xti_di" bpmnElement="Activity_1rkk3bi">
+        <dc:Bounds x="460" y="150" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_00lc2gi_di" bpmnElement="Prepare_Incident_Context">
+        <dc:Bounds x="630" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zatkod_di" bpmnElement="Activity_0w8ynwr">
+        <dc:Bounds x="800" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1qqfuhw_di" bpmnElement="Content_Enrichment">
+        <dc:Bounds x="1566" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1pu30zs_di" bpmnElement="Event_1pu30zs">
+        <dc:Bounds x="2812" y="167" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="2796" y="210" width="69" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_059t501_di" bpmnElement="Audit_Report">
+        <dc:Bounds x="2620" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1o1j9lm_di" bpmnElement="Create_Audit_Sections">
+        <dc:Bounds x="2430" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1vav7bu_di" bpmnElement="Activity_0uj3i4a">
+        <dc:Bounds x="2260" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1dr2ggo_di" bpmnElement="Call_Scenario_Processor">
+        <dc:Bounds x="290" y="150" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_10zydlj" bpmnElement="Activity_0tgi495">
+        <dc:Bounds x="1940" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_01nfqqh_di" bpmnElement="Ticket_Creation">
+        <dc:Bounds x="2090" y="145" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0537q5w_di" bpmnElement="Start_Process">
+        <dc:Bounds x="172" y="172" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="157" y="215" width="67" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="AI_Agent_Investigation_di" bpmnElement="AI_Agent_Investigation" isExpanded="true">
+        <dc:Bounds x="990" y="80" width="350" height="230" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="MCP_SOC_Tools_di" bpmnElement="MCP_SOC_Tools">
+        <dc:Bounds x="1110" y="155" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Map_MCP_Tool_Results_di" bpmnElement="Map_MCP_Tool_Results">
+        <dc:Bounds x="1380" y="155" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1jzlpls_di" bpmnElement="Flow_1jzlpls">
+        <di:waypoint x="1844" y="185" />
+        <di:waypoint x="1940" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qc7jlo_di" bpmnElement="Flow_1qc7jlo">
+        <di:waypoint x="560" y="190" />
+        <di:waypoint x="630" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_184d9q1_di" bpmnElement="Flow_184d9q1">
+        <di:waypoint x="730" y="190" />
+        <di:waypoint x="800" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rq39js_di" bpmnElement="Flow_1rq39js">
+        <di:waypoint x="1666" y="185" />
+        <di:waypoint x="1744" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1eiz0y2_di" bpmnElement="Flow_1eiz0y2">
+        <di:waypoint x="2530" y="185" />
+        <di:waypoint x="2620" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10q65j1_di" bpmnElement="Flow_10q65j1">
+        <di:waypoint x="2190" y="185" />
+        <di:waypoint x="2260" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0ljujq2_di" bpmnElement="Flow_0ljujq2">
+        <di:waypoint x="2720" y="185" />
+        <di:waypoint x="2812" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0kepnhr_di" bpmnElement="Flow_0kepnhr">
+        <di:waypoint x="390" y="190" />
+        <di:waypoint x="460" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0mneppf_di" bpmnElement="Flow_0mneppf">
+        <di:waypoint x="208" y="190" />
+        <di:waypoint x="290" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0r6uqpc_di" bpmnElement="Flow_0r6uqpc">
+        <di:waypoint x="2040" y="185" />
+        <di:waypoint x="2090" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0jnoav8_di" bpmnElement="Flow_0jnoav8">
+        <di:waypoint x="2360" y="185" />
+        <di:waypoint x="2430" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_agent_in_di" bpmnElement="Flow_agent_in">
+        <di:waypoint x="900" y="190" />
+        <di:waypoint x="990" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_agent_out_di" bpmnElement="Flow_agent_out">
+        <di:waypoint x="1340" y="190" />
+        <di:waypoint x="1380" y="190" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_adapter_out_di" bpmnElement="Flow_adapter_out">
+        <di:waypoint x="1480" y="195" />
+        <di:waypoint x="1566" y="195" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_18e8osv">
+    <bpmndi:BPMNPlane id="BPMNPlane_07ov459" bpmnElement="Prepare_Incident_Context">
+      <bpmndi:BPMNShape id="Event_0n3s93g_di" bpmnElement="Event_0n3s93g">
+        <dc:Bounds x="252" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1dhtg60_di" bpmnElement="Event_1dhtg60">
+        <dc:Bounds x="1962" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1o56sr3" bpmnElement="Activity_1tugk73">
+        <dc:Bounds x="360" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_04w2atg" bpmnElement="Activity_0kmtlah">
+        <dc:Bounds x="520" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_11tbeqg" bpmnElement="Extract_Reports">
+        <dc:Bounds x="1350" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1sb6rqi" bpmnElement="write_iso_report">
+        <dc:Bounds x="680" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_17tpxii" bpmnElement="Activity_1uiy774">
+        <dc:Bounds x="1660" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1xcek6m" bpmnElement="Find_IP_in_Topic">
+        <dc:Bounds x="1505" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_064byaf" bpmnElement="Pre_Incident_Builder">
+        <dc:Bounds x="1810" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0zt41d8_di" bpmnElement="Extract_ISO_Text">
+        <dc:Bounds x="850" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0sexl23_di" bpmnElement="Extract_ISO_Mapping">
+        <dc:Bounds x="1010" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_17h4uql_di" bpmnElement="Extract_ISO_Controls">
+        <dc:Bounds x="1170" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_1wowajk" bpmnElement="Flow_1fpayh6">
+        <di:waypoint x="460" y="350" />
+        <di:waypoint x="520" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1bdc2p1" bpmnElement="Flow_056qd13">
+        <di:waypoint x="620" y="350" />
+        <di:waypoint x="680" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_13lgep3" bpmnElement="Flow_1q1cerp">
+        <di:waypoint x="780" y="350" />
+        <di:waypoint x="850" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1ln8abd" bpmnElement="Flow_0sy75xp">
+        <di:waypoint x="1450" y="350" />
+        <di:waypoint x="1505" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0hs0e0h" bpmnElement="Flow_1j22t3k">
+        <di:waypoint x="1605" y="350" />
+        <di:waypoint x="1660" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0mey6nt" bpmnElement="Flow_1e2dmpo">
+        <di:waypoint x="1760" y="350" />
+        <di:waypoint x="1810" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_07u1h65_di" bpmnElement="Flow_07u1h65">
+        <di:waypoint x="288" y="350" />
+        <di:waypoint x="360" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03vegbc_di" bpmnElement="Flow_03vegbc">
+        <di:waypoint x="1910" y="350" />
+        <di:waypoint x="1962" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gogfkf_di" bpmnElement="Flow_1gogfkf">
+        <di:waypoint x="950" y="350" />
+        <di:waypoint x="1010" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1oxssyk_di" bpmnElement="Flow_1oxssyk">
+        <di:waypoint x="1110" y="350" />
+        <di:waypoint x="1170" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0zaatrx_di" bpmnElement="Flow_0zaatrx">
+        <di:waypoint x="1270" y="350" />
+        <di:waypoint x="1350" y="350" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1ht7v55">
+    <bpmndi:BPMNPlane id="BPMNPlane_0lnufd6" bpmnElement="Activity_0w8ynwr">
+      <bpmndi:BPMNShape id="BPMNShape_02tosth" bpmnElement="Threat_Interpretation_AI">
+        <dc:Bounds x="380" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0blatro" bpmnElement="Parse_Threat_AI_Analysis">
+        <dc:Bounds x="520" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0ix13v3" bpmnElement="Activity_0knsst7">
+        <dc:Bounds x="1270" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0z0owd2_di" bpmnElement="Event_0z0owd2">
+        <dc:Bounds x="252" y="212" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1h9txkw_di" bpmnElement="Event_1h9txkw">
+        <dc:Bounds x="1452" y="212" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1cl8rcx_di" bpmnElement="Mini_Asset_Detection">
+        <dc:Bounds x="1120" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_18efe0g_di" bpmnElement="Short_Description_AI">
+        <dc:Bounds x="820" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1nmy6wn" bpmnElement="llm_explanation_AI">
+        <dc:Bounds x="970" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1kzj27u" bpmnElement="Activity_1mmn11d">
+        <dc:Bounds x="670" y="190" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_0j369vp" bpmnElement="Flow_1j4m7vi">
+        <di:waypoint x="480" y="230" />
+        <di:waypoint x="520" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0on4h8x" bpmnElement="Flow_0xm84ex">
+        <di:waypoint x="620" y="230" />
+        <di:waypoint x="670" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xh5snp_di" bpmnElement="Flow_1xh5snp">
+        <di:waypoint x="288" y="230" />
+        <di:waypoint x="380" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1d0tb2g_di" bpmnElement="Analyze_Threat_AI">
+        <di:waypoint x="1370" y="230" />
+        <di:waypoint x="1452" y="230" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1383" y="186" width="74" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0dn6uic_di" bpmnElement="Flow_0dn6uic">
+        <di:waypoint x="1220" y="230" />
+        <di:waypoint x="1270" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_03y4swm_di" bpmnElement="Flow_03y4swm">
+        <di:waypoint x="920" y="230" />
+        <di:waypoint x="970" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1nka4il_di" bpmnElement="Flow_1nka4il">
+        <di:waypoint x="1070" y="230" />
+        <di:waypoint x="1120" y="230" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hxjfpm_di" bpmnElement="Flow_0hxjfpm">
+        <di:waypoint x="770" y="230" />
+        <di:waypoint x="820" y="230" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_15yt5d6">
+    <bpmndi:BPMNPlane id="BPMNPlane_19yqvcj" bpmnElement="Content_Enrichment">
+      <bpmndi:BPMNShape id="Event_0nm10tn_di" bpmnElement="Event_0nm10tn">
+        <dc:Bounds x="162" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1jp2wr7" bpmnElement="Investigation_Duration_Builder">
+        <dc:Bounds x="1350" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0bpydyy" bpmnElement="Confidence_Calculation">
+        <dc:Bounds x="430" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0k6cpvm" bpmnElement="Calculate_Action">
+        <dc:Bounds x="580" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0vaq1bl" bpmnElement="Build_Investigation_Report">
+        <dc:Bounds x="1200" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_0odbb3h_di" bpmnElement="Event_0odbb3h">
+        <dc:Bounds x="1522" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_06q0c7l_di" bpmnElement="Report_Enrichment">
+        <dc:Bounds x="730" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_14kw1ps_di" bpmnElement="Unified_Incident_Builder">
+        <dc:Bounds x="280" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_06m0d6w" bpmnElement="Activity_07u2cg9">
+        <dc:Bounds x="1040" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1ftrdtj" bpmnElement="Activity_1d33b1r">
+        <dc:Bounds x="880" y="170" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_1lz4v5k" bpmnElement="Flow_01jdjde">
+        <di:waypoint x="1450" y="210" />
+        <di:waypoint x="1522" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0snl12b" bpmnElement="Flow_15p7s9m">
+        <di:waypoint x="1300" y="210" />
+        <di:waypoint x="1350" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0nubhoy" bpmnElement="Flow_106ngwl">
+        <di:waypoint x="530" y="210" />
+        <di:waypoint x="580" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0f4qx9d" bpmnElement="Flow_0xiuyw4">
+        <di:waypoint x="680" y="210" />
+        <di:waypoint x="730" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1xsrq63_di" bpmnElement="Flow_1xsrq63">
+        <di:waypoint x="198" y="210" />
+        <di:waypoint x="280" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19197k3_di" bpmnElement="Flow_19197k3">
+        <di:waypoint x="830" y="210" />
+        <di:waypoint x="880" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0itfbyx_di" bpmnElement="Flow_0itfbyx">
+        <di:waypoint x="1140" y="210" />
+        <di:waypoint x="1200" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1rkls3u_di" bpmnElement="Flow_1rkls3u">
+        <di:waypoint x="980" y="210" />
+        <di:waypoint x="1040" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1w0atz5_di" bpmnElement="Flow_1w0atz5">
+        <di:waypoint x="380" y="210" />
+        <di:waypoint x="430" y="210" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_0wn0tb0">
+    <bpmndi:BPMNPlane id="BPMNPlane_1tf1n5f" bpmnElement="Activity_0uj3i4a">
+      <bpmndi:BPMNShape id="Event_1codhch_di" bpmnElement="Event_1codhch">
+        <dc:Bounds x="132" y="252" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1xz59ap" bpmnElement="ISO_Post_Evaluate_00">
+        <dc:Bounds x="390" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0lf7wkq" bpmnElement="ISO_Post_Render">
+        <dc:Bounds x="550" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1rse9r3" bpmnElement="ISO_Post_Mapping">
+        <dc:Bounds x="700" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1des4tm_di" bpmnElement="Event_1des4tm">
+        <dc:Bounds x="862" y="252" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1abaeyu_di" bpmnElement="Process_Failure_Check">
+        <dc:Bounds x="230" y="230" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="BPMNEdge_1kjroy1" bpmnElement="Flow_0s23qo5">
+        <di:waypoint x="650" y="270" />
+        <di:waypoint x="700" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0wc7jkp" bpmnElement="Flow_0cxzoin">
+        <di:waypoint x="490" y="270" />
+        <di:waypoint x="550" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1qrrhqn_di" bpmnElement="Flow_1qrrhqn">
+        <di:waypoint x="168" y="270" />
+        <di:waypoint x="230" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1jhbl63_di" bpmnElement="Flow_1jhbl63">
+        <di:waypoint x="800" y="270" />
+        <di:waypoint x="862" y="270" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_12wrfna_di" bpmnElement="Flow_12wrfna">
+        <di:waypoint x="330" y="270" />
+        <di:waypoint x="390" y="270" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_0gy8qmz">
+    <bpmndi:BPMNPlane id="BPMNPlane_0ytjtvt" bpmnElement="Ticket_Creation">
+      <bpmndi:BPMNShape id="Event_1wjxhb7_di" bpmnElement="Event_1wjxhb7">
+        <dc:Bounds x="1262" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_02hjen2_di" bpmnElement="Event_02hjen2">
+        <dc:Bounds x="122" y="332" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_049pdbu" bpmnElement="Gateway_0eyccgv" isMarkerVisible="true">
+        <dc:Bounds x="1145" y="325" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0vzb02a" bpmnElement="Activity_1t4a3tw">
+        <dc:Bounds x="970" y="430" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1fihgwo" bpmnElement="Activity_08ibxmc">
+        <dc:Bounds x="970" y="187" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_0yxe5v5" bpmnElement="Activity_1dceppq">
+        <dc:Bounds x="970" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1j5wjhl" bpmnElement="Gateway_0rp3sxk" isMarkerVisible="true">
+        <dc:Bounds x="675" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="705" y="282" width="69" height="40" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_169539j" bpmnElement="Activity_0qnzcua">
+        <dc:Bounds x="820" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_1u2fvom" bpmnElement="Activity_0u43077">
+        <dc:Bounds x="510" y="310" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_02hm3bg" bpmnElement="Activity_1al623d">
+        <dc:Bounds x="360" y="310" width="100" height="80" />
+        <bpmndi:BPMNLabel />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="BPMNShape_07msre5" bpmnElement="Gateway_12k235j" isMarkerVisible="true">
+        <dc:Bounds x="225" y="325" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="216" y="288" width="67" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_0hqdmkl_di" bpmnElement="Ticketerstellen">
+        <di:waypoint x="1195" y="350" />
+        <di:waypoint x="1262" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1192" y="332" width="74" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0w33etf" bpmnElement="Flow_16zhi9r">
+        <di:waypoint x="1070" y="470" />
+        <di:waypoint x="1170" y="470" />
+        <di:waypoint x="1170" y="375" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1ep0m75" bpmnElement="Flow_0dmndri">
+        <di:waypoint x="1070" y="227" />
+        <di:waypoint x="1170" y="227" />
+        <di:waypoint x="1170" y="325" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1aafmy8" bpmnElement="Flow_12ukw1z">
+        <di:waypoint x="1070" y="350" />
+        <di:waypoint x="1145" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1hktilo" bpmnElement="Flow_1sld313">
+        <di:waypoint x="700" y="325" />
+        <di:waypoint x="700" y="227" />
+        <di:waypoint x="970" y="227" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="718" y="197" width="65" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0h7wcww" bpmnElement="Flow_13d2uso">
+        <di:waypoint x="725" y="350" />
+        <di:waypoint x="820" y="350" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="728" y="362" width="72" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_1y0k6nw" bpmnElement="Flow_0m1m2mc">
+        <di:waypoint x="920" y="350" />
+        <di:waypoint x="970" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_13ci6jo" bpmnElement="Flow_1y90udi">
+        <di:waypoint x="610" y="350" />
+        <di:waypoint x="675" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0lspz8z" bpmnElement="Flow_0cny9uy">
+        <di:waypoint x="460" y="350" />
+        <di:waypoint x="510" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_04fp310" bpmnElement="Flow_1i7w6xl">
+        <di:waypoint x="250" y="375" />
+        <di:waypoint x="250" y="470" />
+        <di:waypoint x="970" y="470" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="264" y="386" width="52" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="BPMNEdge_0w1srbp" bpmnElement="Flow_0iy4woa">
+        <di:waypoint x="275" y="350" />
+        <di:waypoint x="360" y="350" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0p9scg6_di" bpmnElement="Flow_0p9scg6">
+        <di:waypoint x="158" y="350" />
+        <di:waypoint x="225" y="350" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
