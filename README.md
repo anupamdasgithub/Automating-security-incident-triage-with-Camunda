@@ -20,6 +20,41 @@ The result is a complete, reproducible run: from scenario intake through AI plan
 
 ---
 
+## Agentic variant — a branch, not a replacement
+
+An alternative implementation of the tool-dispatch layer lives on the
+[`AI-Investigation-Agentic-with-MCP`](https://github.com/anupamdasgithub/Automating-security-incident-triage-with-Camunda/tree/AI-Investigation-Agentic-with-MCP) branch.
+
+This blueprint chooses investigation tools by having a model emit a list of
+strings, which Zeebe then matches against BPMN element IDs:
+
+```xml
+<zeebe:adHoc activeElementsCollection="=agent_plan.tools" />
+```
+
+That branch replaces the mechanism with Camunda's **AI Agent Sub-process driving
+tools published over MCP** — typed input schemas, runtime discovery,
+contract-based invocation. The model no longer needs to know the process's
+internal identifiers.
+
+Everything downstream is left alone. The risk scoring, the ISO chain, the GDPR
+logic, the report sections and the human validation gate all run unmodified, on
+data that arrives through an agent instead of a hard-coded dispatch table. An
+adapter maps MCP output onto the variable contract this README describes, so no
+downstream FEEL was edited.
+
+The model there is a local OpenAI-compatible stub, so that variant also runs at
+zero cost and deterministically, while Camunda's agent loop around it — discovery,
+dispatch, feedback, correlation — is entirely real. One of its three tools calls
+`internetdb.shodan.io` for live scan data.
+
+The two branches are kept separate on purpose: `main` stays faithful to the
+blueprint, and the comparison between them is the point.
+
+**→ [Architecture, adapter and verified results](https://github.com/anupamdasgithub/Automating-security-incident-triage-with-Camunda/blob/AI-Investigation-Agentic-with-MCP/README.md)**
+
+---
+
 ## Overview
 
 The implementation preserves the blueprint's separation of responsibilities and adds a local execution layer beneath it.
